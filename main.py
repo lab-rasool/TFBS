@@ -4,6 +4,7 @@ import random
 import numpy as np
 import torch
 import torch.nn.functional as F
+from matplotlib import pyplot as plt
 from sklearn import metrics
 from torch.utils.data import DataLoader
 
@@ -394,13 +395,22 @@ def test():
 
             auc.append(metrics.roc_auc_score(labels, pred))
 
+            # plot the ROC curve
+            fpr, tpr, thresholds = metrics.roc_curve(labels, pred)
+            plt.plot(fpr, tpr)
+
         AUC_training = np.mean(auc)
+
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.title(f"ROC curve | AUC on test data {AUC_training}")
+        plt.savefig("DeepBIND_ROC_curve.png")
         print("AUC on test data = ", AUC_training)
 
 
 def main():
-    train()
-    # test()
+    # train()
+    test()
 
 
 if __name__ == "__main__":

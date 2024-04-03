@@ -1,8 +1,3 @@
-# --------------------------------------------
-# TODO: Refactor
-# TODO: Generate attribution maps of the CNN
-# --------------------------------------------
-
 import csv
 import gzip
 
@@ -11,6 +6,7 @@ import optuna
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from matplotlib import pyplot as plt
 from rich.progress import Progress
 from rich.traceback import install
 from sklearn import metrics
@@ -18,63 +14,12 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader, Dataset
 
+from model import TransformerModel
+
 install()
 
 # Check if GPU is available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-class CNNEmbedding(nn.Module):
-    def __init__(self, embedding_dim, dropout_rate=0.5):
-        super(CNNEmbedding, self).__init__()
-        self.conv1 = nn.Conv1d(4, 32, kernel_size=3, padding=1)
-        self.relu = nn.ReLU()
-        self.maxpool = nn.MaxPool1d(kernel_size=2)
-        self.dropout = nn.Dropout(dropout_rate)
-        self.conv2 = nn.Conv1d(32, 128, kernel_size=3, padding=1)
-        self.fc = nn.Linear(128 * 36, embedding_dim)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-        x = self.dropout(x)
-        x = self.conv2(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        return x
-
-
-# Define the transformer model
-class TransformerModel(nn.Module):
-    def __init__(
-        self,
-        embedding_dim,
-        dropout_rate=0.5,
-        dim_feedforward=512,
-        nhead=8,
-        num_encoder_layers=6,
-        num_decoder_layers=6,
-    ):
-        super(TransformerModel, self).__init__()
-        self.embedding = CNNEmbedding(embedding_dim, dropout_rate)
-        self.transformer = nn.Transformer(
-            nhead=nhead,
-            num_encoder_layers=num_encoder_layers,
-            num_decoder_layers=num_decoder_layers,
-            d_model=embedding_dim,
-            dim_feedforward=dim_feedforward,
-            batch_first=True,
-        )
-        self.fc = nn.Linear(embedding_dim, 1)
-
-    def forward(self, src):
-        src = self.embedding(src)
-        output = self.transformer(src, src)
-        output = self.fc(output)
-        return output
 
 
 class ChipDataLoader:
@@ -235,7 +180,14 @@ def test_model(model, test_loader, device):
             labels = target.cpu().numpy().reshape(output.shape[0])
             auc.append(metrics.roc_auc_score(labels, pred))
 
-            print(labels, pred)
+            # make the roc curve
+            fpr, tpr, _ = metrics.roc_curve(labels, pred)
+            plt.plot(fpr, tpr)
+
+        plt.xlabel("False Positive Rate")
+        plt.ylabel("True Positive Rate")
+        plt.title(f"ROC Curve | AUC on test data: {np.mean(auc):.4f}")
+        plt.savefig("Transformer_ROC_curve.png")
 
     print(f"Test AUC: {np.mean(auc):.4f}")
     return np.mean(auc)
@@ -295,18 +247,18 @@ def objective(trial):
 
 
 def main():
-    # ==============================
-    # Hyperparameter tuning
-    # ==============================
-    study = optuna.create_study(
-        direction="maximize",
-        storage="sqlite:///transformer.db",
-        study_name="transformer",
-        load_if_exists=True,
-    )
-    study.optimize(objective, n_trials=100)
-    print("Number of finished trials:", len(study.trials))
-    print("Best trial:", study.best_trial.params)
+    # # ==============================
+    # # Hyperparameter tuning
+    # # ==============================
+    # study = optuna.create_study(
+    #     direction="maximize",
+    #     storage="sqlite:///transformer.db",
+    #     study_name="transformer",
+    #     load_if_exists=True,
+    # )
+    # study.optimize(objective, n_trials=50)
+    # print("Number of finished trials:", len(study.trials))
+    # print("Best trial:", study.best_trial.params)
     study = optuna.load_study(
         study_name="transformer",
         storage="sqlite:///transformer.db",
@@ -349,16 +301,15 @@ def main():
         valid_dataloader,
         optimizer,
         criterion,
-        250,
+        5000,
         save_model=True,
     )
 
     # ==============================
     # Testing
     # ==============================
-    # "/mnt/f/Projects/GenomicAttributions/data/encode/GATA1_K562_GATA-1_USC_AC.seq.gz"
-
     chipseq_test = ChipDataLoader(
+        # "/mnt/f/Projects/GenomicAttributions/data/encode/GATA1_K562_GATA-1_USC_AC.seq.gz"
         "/mnt/f/Projects/GenomicAttributions/data/encode/GATA1_K562_GATA-1_USC_B.seq.gz"
     )
     testdataset = chipseq_test.load_data()

@@ -91,3 +91,56 @@ class ConvNet(nn.Module):
                 output = hid.mm(self.wNeu) + self.wNeuBias
 
         return output
+
+
+class CNNEmbedding(nn.Module):
+    def __init__(self, embedding_dim, dropout_rate=0.5):
+        super(CNNEmbedding, self).__init__()
+        self.conv1 = nn.Conv1d(4, 32, kernel_size=3, padding=1)
+        self.relu = nn.ReLU()
+        self.maxpool = nn.MaxPool1d(kernel_size=2)
+        self.dropout = nn.Dropout(dropout_rate)
+        self.conv2 = nn.Conv1d(32, 64, kernel_size=3, padding=1)
+        self.fc = nn.Linear(64 * 36, embedding_dim)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        x = self.dropout(x)
+        x = self.conv2(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
+
+
+# Define the transformer model
+class TransformerModel(nn.Module):
+    def __init__(
+        self,
+        embedding_dim,
+        dropout_rate=0.5,
+        dim_feedforward=512,
+        nhead=8,
+        num_encoder_layers=6,
+        num_decoder_layers=6,
+    ):
+        super(TransformerModel, self).__init__()
+        self.embedding = CNNEmbedding(embedding_dim, dropout_rate)
+        self.transformer = nn.Transformer(
+            nhead=nhead,
+            num_encoder_layers=num_encoder_layers,
+            num_decoder_layers=num_decoder_layers,
+            d_model=embedding_dim,
+            dim_feedforward=dim_feedforward,
+            batch_first=True,
+        )
+        self.fc = nn.Linear(embedding_dim, 1)
+
+    def forward(self, src):
+        src = self.embedding(src)
+        output = self.transformer(src, src)
+        output = self.fc(output)
+        return output
