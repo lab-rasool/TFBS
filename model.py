@@ -2,8 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from scipy.stats import bernoulli
+from transformers import AutoTokenizer, BertModel
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+tokenizer = AutoTokenizer.from_pretrained("zhihan1996/DNA_bert_6")
+bert_model = BertModel.from_pretrained("zhihan1996/DNA_bert_6")
 
 
 class ConvNet(nn.Module):
@@ -59,7 +62,7 @@ class ConvNet(nn.Module):
             self.wHiddenBias = nn.Parameter(torch.randn(32))
             nn.init.normal_(self.wHiddenBias, mean=0, std=0.3)
 
-    def forward(self, x, training=True):
+    def forward(self, x, training=True, return_embeddings=False):
         x = x.float()  # Ensure input x is float
         conv = F.conv1d(x, self.wConv, bias=self.wRect, stride=1, padding=0)
         rect = F.relu(conv)
@@ -70,6 +73,9 @@ class ConvNet(nn.Module):
             pool = torch.cat((maxPool, avgPool), 1)
         else:
             pool, _ = torch.max(rect, dim=2)
+
+        if return_embeddings:
+            return pool
 
         if self.neuType == "nohidden":
             if training:
