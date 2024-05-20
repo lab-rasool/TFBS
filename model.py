@@ -9,9 +9,9 @@ tokenizer = AutoTokenizer.from_pretrained("zhihan1996/DNA_bert_6")
 bert_model = BertModel.from_pretrained("zhihan1996/DNA_bert_6")
 
 
-class ConvNet(nn.Module):
+class DeepBIND(nn.Module):
     def __init__(self, config):
-        super(ConvNet, self).__init__()
+        super(DeepBIND, self).__init__()
         # Model configuration
         self.nummotif = config["nummotif"]
         self.motiflen = config["motiflen"]
@@ -150,3 +150,74 @@ class TransformerModel(nn.Module):
         output = self.transformer(src, src)
         output = self.fc(output)
         return output
+
+
+class ConvNet(nn.Module):
+    def __init__(self, config):
+        super(ConvNet, self).__init__()
+        self.nummotif = config["nummotif"]
+        self.motiflen = config["motiflen"]
+        self.poolType = config["poolType"]
+        self.sigmaConv = config["sigmaConv"]
+        self.dropprob = config["dropprob"]
+        self.learning_rate = config["learning_rate"]
+        self.momentum_rate = config["momentum_rate"]
+
+        self.wConv = nn.Parameter(torch.randn(self.nummotif, 4, self.motiflen))
+        torch.nn.init.normal_(self.wConv, mean=0, std=self.sigmaConv)
+        self.wRect = torch.randn(self.nummotif).to(device)
+        torch.nn.init.normal_(self.wRect)
+        self.wRect = -self.wRect
+
+        if self.poolType == "maxavg":
+            self.adjust_dimensions = nn.Linear(2 * self.nummotif, 32)
+        else:
+            self.adjust_dimensions = nn.Linear(self.nummotif, 32)
+
+        self.layer_norm = nn.LayerNorm(32)
+        self.classifier = nn.Linear(32, 1)
+
+    def forward(self, x, training=True, return_embedding=False):
+        x = x.float()
+        conv = F.conv1d(x, self.wConv, bias=self.wRect, stride=1, padding=0)
+        rect = F.relu(conv)
+
+        if self.poolType == "maxavg":
+            maxPool, _ = torch.max(rect, dim=2)
+            avgPool = torch.mean(rect, dim=2)
+            pool = torch.cat((maxPool, avgPool), 1)
+        else:
+            pool, _ = torch.max(rect, dim=2)
+
+        adjusted_pool = self.adjust_dimensions(pool)
+        adjusted_pool = self.layer_norm(adjusted_pool)
+
+        if training:
+            mask = bernoulli.rvs(self.dropprob, size=adjusted_pool.shape[1]).astype(
+                float
+            )
+            mask = torch.from_numpy(mask).to(x.device).float()
+            adjusted_pool *= mask
+
+        if return_embedding:
+            return adjusted_pool
+
+        output = self.classifier(adjusted_pool)
+        return output
+
+
+# weight sum version
+class MixtureOfExperts(nn.Module):
+    def __init__(self, num_experts, embedding_size=32):
+        super(MixtureOfExperts, self).__init__()
+        self.num_experts = num_experts
+        self.embedding_size = embedding_size
+        self.gate = nn.Linear(num_experts * embedding_size, num_experts)
+        self.classifier = nn.Linear(embedding_size, 1)
+
+    def forward(self, embeddings):
+        gating_weights = F.softmax(self.gate(embeddings), dim=1)
+        embeddings = embeddings.view(-1, self.num_experts, self.embedding_size)
+        gating_weights = gating_weights.unsqueeze(-1)
+        combined_embedding = torch.mean(gating_weights * embeddings, dim=1)
+        return self.classifier(combined_embedding)

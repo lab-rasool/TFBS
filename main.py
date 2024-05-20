@@ -4,125 +4,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 from matplotlib import pyplot as plt
 from rich.console import Console
-from scipy.stats import bernoulli
 from sklearn import metrics
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from data import ChipDataLoader, chipseq_dataset
+from model import ConvNet, MixtureOfExperts
+from utils import EarlyStopping
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 console = Console()
 console.print(f"Using device: {device}")
-
-
-class ConvNet(nn.Module):
-    def __init__(self, config):
-        super(ConvNet, self).__init__()
-        self.nummotif = config["nummotif"]
-        self.motiflen = config["motiflen"]
-        self.poolType = config["poolType"]
-        self.sigmaConv = config["sigmaConv"]
-        self.dropprob = config["dropprob"]
-        self.learning_rate = config["learning_rate"]
-        self.momentum_rate = config["momentum_rate"]
-
-        self.wConv = nn.Parameter(torch.randn(self.nummotif, 4, self.motiflen))
-        torch.nn.init.normal_(self.wConv, mean=0, std=self.sigmaConv)
-        self.wRect = torch.randn(self.nummotif).to(device)
-        torch.nn.init.normal_(self.wRect)
-        self.wRect = -self.wRect
-
-        if self.poolType == "maxavg":
-            self.adjust_dimensions = nn.Linear(2 * self.nummotif, 32)
-        else:
-            self.adjust_dimensions = nn.Linear(self.nummotif, 32)
-
-        self.layer_norm = nn.LayerNorm(32)
-        self.classifier = nn.Linear(32, 1)
-
-    def forward(self, x, training=True, return_embedding=False):
-        x = x.float()
-        conv = F.conv1d(x, self.wConv, bias=self.wRect, stride=1, padding=0)
-        rect = F.relu(conv)
-
-        if self.poolType == "maxavg":
-            maxPool, _ = torch.max(rect, dim=2)
-            avgPool = torch.mean(rect, dim=2)
-            pool = torch.cat((maxPool, avgPool), 1)
-        else:
-            pool, _ = torch.max(rect, dim=2)
-
-        adjusted_pool = self.adjust_dimensions(pool)
-        adjusted_pool = self.layer_norm(adjusted_pool)
-
-        if training:
-            mask = bernoulli.rvs(self.dropprob, size=adjusted_pool.shape[1]).astype(
-                float
-            )
-            mask = torch.from_numpy(mask).to(x.device).float()
-            adjusted_pool *= mask
-
-        if return_embedding:
-            return adjusted_pool
-
-        output = self.classifier(adjusted_pool)
-        return output
-
-
-# # pure gating version - performs worse
-# class MixtureOfExperts(nn.Module):
-#     def __init__(self, num_experts, embedding_size=32):
-#         super(MixtureOfExperts, self).__init__()
-#         self.num_experts = num_experts
-#         self.embedding_size = embedding_size
-#         self.gate = nn.Linear(num_experts * embedding_size, num_experts)
-#         self.classifier = nn.Linear(embedding_size, 1)
-
-#     def forward(self, embeddings):
-#         gating_weights = F.softmax(self.gate(embeddings), dim=1)
-#         gating_weights = gating_weights.unsqueeze(-1).repeat(1, 1, self.embedding_size)
-#         embeddings = embeddings.view(-1, self.num_experts, self.embedding_size)
-#         combined_embedding = torch.sum(gating_weights * embeddings, dim=1)
-#         return self.classifier(combined_embedding)
-
-
-# weight sum version
-class MixtureOfExperts(nn.Module):
-    def __init__(self, num_experts, embedding_size=32):
-        super(MixtureOfExperts, self).__init__()
-        self.num_experts = num_experts
-        self.embedding_size = embedding_size
-        self.gate = nn.Linear(num_experts * embedding_size, num_experts)
-        self.classifier = nn.Linear(embedding_size, 1)
-
-    def forward(self, embeddings):
-        gating_weights = F.softmax(self.gate(embeddings), dim=1)
-        embeddings = embeddings.view(-1, self.num_experts, self.embedding_size)
-        gating_weights = gating_weights.unsqueeze(-1)
-        combined_embedding = torch.mean(gating_weights * embeddings, dim=1)
-        return self.classifier(combined_embedding)
-
-
-class EarlyStopping:
-    def __init__(self, patience=5, min_delta=0.001):
-        self.patience = patience
-        self.min_delta = min_delta
-        self.counter = 0
-        self.best_score = None
-        self.early_stop = False
-
-    def __call__(self, auc_score):
-        if self.best_score is None or auc_score > self.best_score + self.min_delta:
-            self.best_score = auc_score
-            self.counter = 0
-        else:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
-                return True
-        return False
 
 
 def train(config, train_loader, valid_loader, save_path):
@@ -376,59 +269,59 @@ def main():
 
     num_experts = len(chiqseq_train)
 
-    # # --------------------------------------------------------------------------------
-    # # Train Individual Expert Models
-    # # --------------------------------------------------------------------------------
-    # for i in range(len(chiqseq_train)):
-    #     alldataset = ChipDataLoader(chiqseq_train[i]).load_data()
-    #     train_data, valid_data = train_test_split(alldataset, test_size=0.2)
-    #     train_loader = DataLoader(
-    #         dataset=chipseq_dataset(train_data),
-    #         batch_size=128,
-    #         shuffle=True,
-    #     )
-    #     valid_loader = DataLoader(
-    #         dataset=chipseq_dataset(valid_data),
-    #         batch_size=128,
-    #         shuffle=False,
-    #     )
-    #     # 1. Hyperparameter optimization
-    #     study = optuna.create_study(direction="maximize")
-    #     study.optimize(
-    #         lambda trial: objective(trial, train_loader, valid_loader),
-    #         n_trials=10,
-    #         gc_after_trial=True,
-    #     )
-    #     # 2. Save best hyperparameters
-    #     best_hyperparameters = study.best_trial.params
-    #     torch.save(
-    #         best_hyperparameters,
-    #         f"./models/moe/best_hyperparameters_{i}.pth",
-    #     )
-    #     best_hyperparameters = torch.load(f"./models/moe/best_hyperparameters_{i}.pth")
-    #     console.print(best_hyperparameters)
-    #     config = {
-    #         "nummotif": 16,
-    #         "motiflen": 24,
-    #         "poolType": best_hyperparameters["poolType"],
-    #         "sigmaConv": best_hyperparameters["sigmaConv"],
-    #         "dropprob": best_hyperparameters["dropprob"],
-    #         "learning_rate": best_hyperparameters["learning_rate"],
-    #         "momentum_rate": best_hyperparameters["momentum_rate"],
-    #         "num_features": 32,
-    #         "d_model": 32,
-    #         "num_heads": best_hyperparameters["num_heads"],
-    #         "dim_feedforward": best_hyperparameters["dim_feedforward"],
-    #         "encoder_dropout": best_hyperparameters["encoder_dropout"],
-    #         "num_layers": best_hyperparameters["num_layers"],
-    #     }
-    #     # 3. Train model with best hyperparameters
-    #     train(
-    #         config=config,
-    #         train_loader=train_loader,
-    #         valid_loader=valid_loader,
-    #         save_path=f"./models/moe/best_model_{i}.pth",
-    #     )
+    # --------------------------------------------------------------------------------
+    # Train Individual Expert Models
+    # --------------------------------------------------------------------------------
+    for i in range(len(chiqseq_train)):
+        alldataset = ChipDataLoader(chiqseq_train[i]).load_data()
+        train_data, valid_data = train_test_split(alldataset, test_size=0.2)
+        train_loader = DataLoader(
+            dataset=chipseq_dataset(train_data),
+            batch_size=128,
+            shuffle=True,
+        )
+        valid_loader = DataLoader(
+            dataset=chipseq_dataset(valid_data),
+            batch_size=128,
+            shuffle=False,
+        )
+        # 1. Hyperparameter optimization
+        study = optuna.create_study(direction="maximize")
+        study.optimize(
+            lambda trial: objective(trial, train_loader, valid_loader),
+            n_trials=10,
+            gc_after_trial=True,
+        )
+        # 2. Save best hyperparameters
+        best_hyperparameters = study.best_trial.params
+        torch.save(
+            best_hyperparameters,
+            f"./models/moe/best_hyperparameters_{i}.pth",
+        )
+        best_hyperparameters = torch.load(f"./models/moe/best_hyperparameters_{i}.pth")
+        console.print(best_hyperparameters)
+        config = {
+            "nummotif": 16,
+            "motiflen": 24,
+            "poolType": best_hyperparameters["poolType"],
+            "sigmaConv": best_hyperparameters["sigmaConv"],
+            "dropprob": best_hyperparameters["dropprob"],
+            "learning_rate": best_hyperparameters["learning_rate"],
+            "momentum_rate": best_hyperparameters["momentum_rate"],
+            "num_features": 32,
+            "d_model": 32,
+            "num_heads": best_hyperparameters["num_heads"],
+            "dim_feedforward": best_hyperparameters["dim_feedforward"],
+            "encoder_dropout": best_hyperparameters["encoder_dropout"],
+            "num_layers": best_hyperparameters["num_layers"],
+        }
+        # 3. Train model with best hyperparameters
+        train(
+            config=config,
+            train_loader=train_loader,
+            valid_loader=valid_loader,
+            save_path=f"./models/moe/best_model_{i}.pth",
+        )
 
     # 4. Evaluate all models on all tests
     model_paths = [f"./models/moe/best_model_{i}.pth" for i in range(num_experts)]
