@@ -1,5 +1,4 @@
 /data
-/models
 __pycache__
 *.db
 *.pth

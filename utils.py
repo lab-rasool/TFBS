@@ -1,3 +1,6 @@
+import os
+
+
 class EarlyStopping:
     def __init__(self, patience=5, min_delta=0.001):
         self.patience = patience
@@ -16,3 +19,15 @@ class EarlyStopping:
                 self.early_stop = True
                 return True
         return False
+
+
+def load_files_from_folder(folder_path):
+    return [
+        os.path.join(folder_path, file)
+        for file in os.listdir(folder_path)
+        if os.path.isfile(os.path.join(folder_path, file))
+    ]
+
+
+def get_tf_name(file_path):
+    return os.path.basename(file_path).split("_")[0]

@@ -155,8 +155,8 @@ class TransformerModel(nn.Module):
 class ConvNet(nn.Module):
     def __init__(self, config):
         super(ConvNet, self).__init__()
-        self.nummotif = config["nummotif"]
-        self.motiflen = config["motiflen"]
+        self.nummotif = 16
+        self.motiflen = 24
         self.poolType = config["poolType"]
         self.sigmaConv = config["sigmaConv"]
         self.dropprob = config["dropprob"]
