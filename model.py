@@ -214,7 +214,7 @@ class MixtureOfExperts(nn.Module):
         self.embedding_size = embedding_size
         self.gate = nn.Linear(num_experts * embedding_size, num_experts)
         self.classifier = nn.Linear(embedding_size, 1)
-
+    
     def forward(self, embeddings):
         gating_weights = F.softmax(self.gate(embeddings), dim=1)
         embeddings = embeddings.view(-1, self.num_experts, self.embedding_size)
