@@ -1,6 +1,7 @@
 import argparse
 import os
 
+import numpy as np
 import optuna
 import torch
 import torch.nn as nn
@@ -8,7 +9,15 @@ import torch.nn.functional as F
 from matplotlib import pyplot as plt
 from rich.console import Console
 from sklearn import metrics
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import (
+    auc,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
+)
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
@@ -30,7 +39,6 @@ def load_model(model_path, config):
 
 def train(config, train_loader, valid_loader, save_path, train_file):
     model = ConvNet(config).to(device)
-
     optimizer = torch.optim.SGD(
         [param for param in model.parameters() if param.requires_grad],
         lr=config["learning_rate"],
@@ -52,27 +60,48 @@ def train(config, train_loader, valid_loader, save_path, train_file):
         model.eval()
         with torch.no_grad():
             valid_auc = 0
+            valid_precision = 0
+            valid_recall = 0
+            valid_f1 = 0
+            all_targets = []
+            all_predictions = []
+
             for data, target in valid_loader:
                 data, target = data.to(device), target.to(device)
                 output = model(data)
                 predictions = torch.sigmoid(output)
                 valid_auc += roc_auc_score(target.cpu(), predictions.cpu())
+                preds = (predictions > 0.5).int()
+                valid_precision += precision_score(
+                    target.cpu(), preds.cpu(), zero_division=0
+                )
+                valid_recall += recall_score(target.cpu(), preds.cpu(), zero_division=0)
+                valid_f1 += f1_score(target.cpu(), preds.cpu(), zero_division=0)
+                all_targets.extend(target.cpu().numpy())
+                all_predictions.extend(preds.cpu().numpy())
 
         avg_auc = valid_auc / len(valid_loader)
+        avg_precision = valid_precision / len(valid_loader)
+        avg_recall = valid_recall / len(valid_loader)
+        avg_f1 = valid_f1 / len(valid_loader)
+        cm = confusion_matrix(all_targets, all_predictions)
+
         console.print(
-            f"Epoch {epoch} | Train Loss: {loss.item():.4f} | Valid AUC: {avg_auc:.4f} | Train File: {train_file}"
+            f"Epoch {epoch} | Train Loss: {loss.item():.4f} | Valid AUC: {avg_auc:.4f} | "
+            f"Valid Precision: {avg_precision:.4f} | Valid Recall: {avg_recall:.4f} | Valid F1: {avg_f1:.4f} | Train File: {train_file}"
         )
+        console.print(f"Confusion Matrix:\n{cm}")
+
         if avg_auc > best_auc:
             best_auc = avg_auc
             torch.save(model.state_dict(), save_path)
 
         early_stopping(avg_auc)
-
         if early_stopping.early_stop:
             console.print("Early stopping")
             break
 
-    console.print(f"Training complete for {train_file}. Best AUC:", best_auc)
+    console.print(f"Training complete for {train_file}. Best AUC: {best_auc}")
 
 
 def generate_embeddings(data_loader, models):
@@ -97,7 +126,6 @@ def train_moe(models, moe_model, train_loader, valid_loader, num_epochs=500, lr=
         nesterov=True,
     )
     early_stopping = EarlyStopping(patience=10, min_delta=0.001)
-
     train_embeddings, train_targets = generate_embeddings(train_loader, models)
     valid_embeddings, valid_targets = generate_embeddings(valid_loader, models)
 
@@ -133,6 +161,9 @@ def train_moe(models, moe_model, train_loader, valid_loader, num_epochs=500, lr=
         f"Training complete. Best validation AUC: {early_stopping.best_score:.4f}"
     )
 
+    # Save the best model
+    torch.save(moe_model.state_dict(), "./models/moe/moe_model.pth")
+
 
 def evaluate_moe_on_all_tests(models, moe_model, test_loaders, test_files, save_path):
     results = {}
@@ -149,15 +180,28 @@ def evaluate_moe_on_all_tests(models, moe_model, test_loaders, test_files, save_
                 total_targets.extend(target.cpu().numpy())
 
         auc_score = roc_auc_score(total_targets, total_preds)
-        results[f"Test_{test_idx}"] = auc_score
+        precision = precision_score(
+            total_targets, (np.array(total_preds) > 0.5).astype(int), zero_division=0
+        )
+        recall = recall_score(
+            total_targets, (np.array(total_preds) > 0.5).astype(int), zero_division=0
+        )
+        f1 = f1_score(
+            total_targets, (np.array(total_preds) > 0.5).astype(int), zero_division=0
+        )
+        cm = confusion_matrix(total_targets, (np.array(total_preds) > 0.5).astype(int))
 
-        # # Plot ROC curve for this particular model-test pair
-        fpr, tpr, _ = metrics.roc_curve(total_targets, total_preds)
+        results[f"Test_{test_idx}"] = {
+            "AUC": auc_score,
+            "Precision": precision,
+            "Recall": recall,
+            "F1": f1,
+            "Confusion Matrix": cm,
+        }
 
+        fpr, tpr, _ = roc_curve(total_targets, total_preds)
         if not os.path.exists(save_path):
             os.makedirs(save_path, exist_ok=True)
-
-        # save to csv instead of plotting
         with open(f"{save_path}model_moe_test_{get_tf_name(test_file)}.csv", "w") as f:
             f.write("fpr,tpr\n")
             for i in range(len(fpr)):
@@ -174,7 +218,6 @@ def evaluate_all_models_on_all_tests(
         checkpoint = torch.load(model_path)
         model = ConvNet(config).to(device)
         model.load_state_dict(checkpoint)
-
         train_file = train_files[model_idx]
         train_tf = get_tf_name(train_file)
 
@@ -183,7 +226,6 @@ def evaluate_all_models_on_all_tests(
         ):
             test_tf = get_tf_name(test_file)
             total_preds, total_targets = [], []
-
             with torch.no_grad():
                 for data, target in test_loader:
                     data, target = data.to(device), target.to(device)
@@ -193,14 +235,36 @@ def evaluate_all_models_on_all_tests(
                     total_targets.extend(target.cpu().numpy())
 
             auc_score = roc_auc_score(total_targets, total_preds)
-            results[f"Model_{train_tf}_Test_{test_tf}"] = auc_score
+            precision = precision_score(
+                total_targets,
+                (np.array(total_preds) > 0.5).astype(int),
+                zero_division=0,
+            )
+            recall = recall_score(
+                total_targets,
+                (np.array(total_preds) > 0.5).astype(int),
+                zero_division=0,
+            )
+            f1 = f1_score(
+                total_targets,
+                (np.array(total_preds) > 0.5).astype(int),
+                zero_division=0,
+            )
+            cm = confusion_matrix(
+                total_targets, (np.array(total_preds) > 0.5).astype(int)
+            )
 
-            fpr, tpr, _ = metrics.roc_curve(total_targets, total_preds)
+            results[f"Model_{train_tf}_Test_{test_tf}"] = {
+                "AUC": auc_score,
+                "Precision": precision,
+                "Recall": recall,
+                "F1": f1,
+                "Confusion Matrix": cm,
+            }
 
-            # instead of plotting, save it to csv
+            fpr, tpr, _ = roc_curve(total_targets, total_preds)
             if not os.path.exists(save_path):
                 os.makedirs(save_path, exist_ok=True)
-
             with open(f"{save_path}model_{train_tf}_test_{test_tf}.csv", "w") as f:
                 f.write("fpr,tpr\n")
                 for i in range(len(fpr)):
@@ -281,8 +345,6 @@ def main():
         help="Path to folder containing out-of-distribution ChIP-seq files",
     )
 
-    # python main.py --train_folder "./data/train" --test_folder "./data/test" --save_path "./models/moe" --ood_folder "./data/ood"
-
     args = parser.parse_args()
     train_folder = args.train_folder
     test_folder = args.test_folder
@@ -291,38 +353,26 @@ def main():
 
     chiqseq_train_files = load_files_from_folder(train_folder)
     chiqseq_test_files = load_files_from_folder(test_folder)
-
     num_experts = len(chiqseq_train_files)
 
-    # # --------------------------------------------------------------------------------
     # # Train Individual Expert Models
-    # # --------------------------------------------------------------------------------
     # for i, train_file in enumerate(chiqseq_train_files):
     #     alldataset = ChipDataLoader(train_file).load_data()
     #     train_data, valid_data = train_test_split(alldataset, test_size=0.2)
     #     train_loader = DataLoader(
-    #         dataset=chipseq_dataset(train_data),
-    #         batch_size=128,
-    #         shuffle=True,
+    #         dataset=chipseq_dataset(train_data), batch_size=128, shuffle=True
     #     )
     #     valid_loader = DataLoader(
-    #         dataset=chipseq_dataset(valid_data),
-    #         batch_size=128,
-    #         shuffle=False,
+    #         dataset=chipseq_dataset(valid_data), batch_size=128, shuffle=False
     #     )
-    #     # 1. Hyperparameter optimization
     #     study = optuna.create_study(direction="maximize")
     #     study.optimize(
     #         lambda trial: objective(trial, train_loader, valid_loader),
     #         n_trials=10,
     #         gc_after_trial=True,
     #     )
-    #     # 2. Save best hyperparameters
     #     best_hyperparameters = study.best_trial.params
-    #     torch.save(
-    #         best_hyperparameters,
-    #         f"{save_path}/best_hyperparameters_{i}.pth",
-    #     )
+    #     torch.save(best_hyperparameters, f"{save_path}/best_hyperparameters_{i}.pth")
     #     best_hyperparameters = torch.load(f"{save_path}/best_hyperparameters_{i}.pth")
     #     console.print(best_hyperparameters)
     #     config = {
@@ -341,7 +391,6 @@ def main():
     #         "num_layers": best_hyperparameters["num_layers"],
     #     }
     #     train_tf = get_tf_name(train_file)
-    #     # 3. Train model with best hyperparameters
     #     train(
     #         config=config,
     #         train_loader=train_loader,
@@ -350,7 +399,7 @@ def main():
     #         train_file=train_file,
     #     )
 
-    # 4. Evaluate all models on all tests
+    # Evaluate all models on all tests
     model_paths = [
         f"{save_path}/best_model_{get_tf_name(train_file)}.pth"
         for train_file in chiqseq_train_files
@@ -377,18 +426,13 @@ def main():
     )
     console.print(results)
 
-    # --------------------------------------------------------------------------------
     # MixtureOfExperts
-    # --------------------------------------------------------------------------------
-
-    # Load and combine data from all training files
     combined_data = []
     for path in chiqseq_train_files:
         data_loader = ChipDataLoader(path)
         data = data_loader.load_data()
         combined_data.extend(data)
 
-    # Split data into training and validation sets
     train_data, valid_data = train_test_split(
         combined_data, test_size=0.2, stratify=[label for _, label in combined_data]
     )
@@ -399,7 +443,6 @@ def main():
         dataset=chipseq_dataset(valid_data), batch_size=128, shuffle=False
     )
 
-    # Load pre-trained models
     configs = [
         torch.load(f"{save_path}/best_hyperparameters_{i}.pth")
         for i in range(num_experts)
@@ -412,17 +455,10 @@ def main():
     moe_model = MixtureOfExperts(num_experts=len(models), embedding_size=32).to(device)
     train_moe(models, moe_model, train_loader, valid_loader, lr=0.01)
     results = evaluate_moe_on_all_tests(
-        models,
-        moe_model,
-        test_loaders,
-        chiqseq_test_files,
-        f"{save_path}/results/",
+        models, moe_model, test_loaders, chiqseq_test_files, f"{save_path}/results/"
     )
     console.print(results)
 
-    # --------------------------------------------------------------------------------
-    # Out-of-Distribution TF Evaluation for all models
-    # --------------------------------------------------------------------------------
     if ood_folder is not None:
         chipseq_ood_files = load_files_from_folder(ood_folder)
         ood_loaders = [
@@ -442,38 +478,27 @@ def main():
             train_files=chiqseq_train_files,
         )
         console.print(ood_results)
-
-        # Evaluate MoE on OOD data
         ood_results = evaluate_moe_on_all_tests(
-            models,
-            moe_model,
-            ood_loaders,
-            chipseq_ood_files,
-            f"{save_path}/ood/",
+            models, moe_model, ood_loaders, chipseq_ood_files, f"{save_path}/ood/"
         )
         console.print(ood_results)
 
 
 def plot_results_roc(results_path):
-    # Group ROC files by TF
     roc_files = [f for f in os.listdir(results_path) if f.endswith(".csv")]
     roc_tf_files = {}
     for roc_file in roc_files:
         model_name = roc_file.split("_")[1]
-        test_tf = roc_file.split("_")[3]
-        test_tf = test_tf.split(".")[0]
+        test_tf = roc_file.split("_")[3].split(".")[0]
         if test_tf not in roc_tf_files:
             roc_tf_files[test_tf] = []
         roc_tf_files[test_tf].append(roc_file)
 
-    # Create a figure with n subplots based on the number of TFs files
-    # make it a square grid when possible
     n = len(roc_tf_files)
     cols = 2
     rows = n // cols + n % cols
     fig, axes = plt.subplots(rows, cols, figsize=(15, 15))
 
-    # Plot ROC curves for each TF
     for idx, (tf, files) in enumerate(roc_tf_files.items()):
         ax = axes[idx // cols, idx % cols]
         for file in files:
@@ -481,26 +506,13 @@ def plot_results_roc(results_path):
             with open(f"{results_path}/{file}", "r") as f:
                 next(f)
                 for line in f:
-                    line = line.strip().split(",")
-                    fpr.append(float(line[0]))
-                    tpr.append(float(line[1]))
-            auc = metrics.auc(fpr, tpr)
+                    fpr.append(float(line.split(",")[0]))
+                    tpr.append(float(line.split(",")[1]))
+            auc_value = auc(fpr, tpr)
             model_name = file.split("_")[1]
-            if "moe" in file:
-                ax.plot(
-                    fpr,
-                    tpr,
-                    label=f"MoE (AUC = {auc:.2f})",
-                    linestyle="--",
-                    linewidth=2,
-                )
-            else:
-                ax.plot(
-                    fpr,
-                    tpr,
-                    label=f"{model_name} (AUC = {auc:.2f})",
-                    linewidth=2,
-                )
+            ax.plot(
+                fpr, tpr, label=f"{model_name} (AUC = {auc_value:.2f})", linewidth=2
+            )
         ax.plot([0, 1], [0, 1], "k--", linewidth=1)
         ax.set_xlim([0.0, 1.0])
         ax.set_ylim([0.0, 1.05])

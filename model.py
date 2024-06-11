@@ -206,18 +206,41 @@ class ConvNet(nn.Module):
         return output
 
 
-# weight sum version
+# # weight sum version
+# class MixtureOfExperts(nn.Module):
+#     def __init__(self, num_experts, embedding_size=32):
+#         super(MixtureOfExperts, self).__init__()
+#         self.num_experts = num_experts
+#         self.embedding_size = embedding_size
+#         self.gate = nn.Linear(num_experts * embedding_size, num_experts)
+#         self.classifier = nn.Linear(embedding_size, 1)
+
+#     def forward(self, embeddings):
+#         gating_weights = F.softmax(self.gate(embeddings), dim=1)
+#         embeddings = embeddings.view(-1, self.num_experts, self.embedding_size)
+#         gating_weights = gating_weights.unsqueeze(-1)
+#         combined_embedding = torch.mean(gating_weights * embeddings, dim=1)
+#         return self.classifier(combined_embedding)
+
+
 class MixtureOfExperts(nn.Module):
-    def __init__(self, num_experts, embedding_size=32):
+    def __init__(self, num_experts, embedding_size):
         super(MixtureOfExperts, self).__init__()
         self.num_experts = num_experts
         self.embedding_size = embedding_size
-        self.gate = nn.Linear(num_experts * embedding_size, num_experts)
-        self.classifier = nn.Linear(embedding_size, 1)
+        self.gate = nn.Linear(embedding_size * num_experts, num_experts)
+        self.experts = nn.ModuleList(
+            [nn.Linear(embedding_size, 32) for _ in range(num_experts)]
+        )
+        self.classifier = nn.Linear(32, 1)
 
-    def forward(self, embeddings):
-        gating_weights = F.softmax(self.gate(embeddings), dim=1)
-        embeddings = embeddings.view(-1, self.num_experts, self.embedding_size)
-        gating_weights = gating_weights.unsqueeze(-1)
-        combined_embedding = torch.mean(gating_weights * embeddings, dim=1)
-        return self.classifier(combined_embedding)
+    def forward(self, x):
+        gating_weights = F.softmax(self.gate(x), dim=1)
+        expert_outputs = [
+            expert(x[:, i * self.embedding_size : (i + 1) * self.embedding_size])
+            for i, expert in enumerate(self.experts)
+        ]
+        stacked_outputs = torch.stack(expert_outputs, dim=2)
+        moe_output = torch.bmm(stacked_outputs, gating_weights.unsqueeze(2)).squeeze(2)
+        output = self.classifier(moe_output)
+        return output
