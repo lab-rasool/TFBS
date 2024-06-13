@@ -1,6 +1,9 @@
 import argparse
 import os
+import random
 
+import matplotlib.pyplot as plt
+import numpy as np
 import optuna
 import torch
 import torch.nn as nn
@@ -14,6 +17,17 @@ from torch.utils.data import DataLoader
 from data import ChipDataLoader, chipseq_dataset
 from model import ConvNet, MixtureOfExperts
 from utils import EarlyStopping, get_tf_name, load_files_from_folder
+
+# Set the seed for reproducibility
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 console = Console()
@@ -96,7 +110,7 @@ def train_moe(models, moe_model, train_loader, valid_loader, num_epochs=500, lr=
     optimizer = torch.optim.SGD(
         [param for param in moe_model.parameters() if param.requires_grad],
         lr=lr,
-        momentum=0.9,
+        momentum=0.98,
         nesterov=True,
     )
     early_stopping = EarlyStopping(patience=10, min_delta=0.001)
@@ -132,7 +146,9 @@ def train_moe(models, moe_model, train_loader, valid_loader, num_epochs=500, lr=
             console.print("Early stopping triggered.")
             break
 
+    # Save the trained MoE model
     torch.save(moe_model.state_dict(), "./models/moe/moe_model.pth")
+    # Save the MoE model configuration
     torch.save(
         {
             "num_experts": len(models),
@@ -141,6 +157,7 @@ def train_moe(models, moe_model, train_loader, valid_loader, num_epochs=500, lr=
         },
         "./models/moe/moe_model_config.pth",
     )
+
     console.print(
         f"Training complete. Best validation AUC: {early_stopping.best_score:.4f}"
     )
@@ -272,23 +289,23 @@ def main():
     )
     parser.add_argument(
         "--train_folder",
-        required=True,
+        default="./data/train/",
         help="Path to folder containing training ChIP-seq files",
     )
     parser.add_argument(
         "--test_folder",
-        required=True,
+        default="./data/test/",
         help="Path to folder containing testing ChIP-seq files",
     )
     parser.add_argument(
-        "--save_path",
-        required=True,
-        help="Directory to save trained models and results",
+        "--ood_folder",
+        default="./data/ood/",
+        help="Path to folder containing out-of-distribution ChIP-seq files",
     )
     parser.add_argument(
-        "--ood_folder",
-        default=None,
-        help="Path to folder containing out-of-distribution ChIP-seq files",
+        "--save_path",
+        default="./models/moe/",
+        help="Directory to save trained models and results",
     )
 
     args = parser.parse_args()
@@ -300,7 +317,9 @@ def main():
     chiqseq_train_files = load_files_from_folder(train_folder)
     chiqseq_test_files = load_files_from_folder(test_folder)
 
-    # Train Individual Expert Models using Best Hyperparameters
+    # -------------------------------------------------------------------------------------
+    # Find Best Individual Expert Model Hyperparameters
+    # -------------------------------------------------------------------------------------
     best_hyperparameters_list = []
     for i, train_file in enumerate(chiqseq_train_files):
         alldataset = ChipDataLoader(train_file).load_data()
@@ -330,6 +349,9 @@ def main():
         best_hyperparameters_list.append(best_hyperparameters)
         console.print(best_hyperparameters)
 
+    # -------------------------------------------------------------------------------------
+    # Train Individual Expert Models using Best Hyperparameters
+    # -------------------------------------------------------------------------------------
     for i, (train_file, best_hyperparameters) in enumerate(
         zip(chiqseq_train_files, best_hyperparameters_list)
     ):
@@ -369,7 +391,9 @@ def main():
             train_file=train_file,
         )
 
+    # -------------------------------------------------------------------------------------
     # Evaluate all models on all tests
+    # -------------------------------------------------------------------------------------
     model_paths = [
         f"{save_path}/best_model_{get_tf_name(train_file)}.pth"
         for train_file in chiqseq_train_files
@@ -396,7 +420,9 @@ def main():
     )
     console.print(results)
 
+    # -------------------------------------------------------------------------------------
     # MixtureOfExperts
+    # -------------------------------------------------------------------------------------
     # Load and combine data from all training files
     combined_data = []
     for path in chiqseq_train_files:
@@ -409,20 +435,24 @@ def main():
         combined_data, test_size=0.2, stratify=[label for _, label in combined_data]
     )
     train_loader = DataLoader(
-        dataset=chipseq_dataset(train_data), batch_size=64, shuffle=True
+        dataset=chipseq_dataset(train_data), batch_size=128, shuffle=True
     )
     valid_loader = DataLoader(
-        dataset=chipseq_dataset(valid_data), batch_size=64, shuffle=False
+        dataset=chipseq_dataset(valid_data), batch_size=128, shuffle=False
     )
 
     # Load pre-trained models
     models = [load_model(path, config) for path, config in zip(model_paths, configs)]
-    moe_model_config_path = f"{save_path}/moe_model_config.pth"
-
     moe_model = MixtureOfExperts(num_experts=len(models), embedding_size=32).to(device)
-    train_moe(models, moe_model, train_loader, valid_loader, lr=0.01)
-
-    moe_model_config = torch.load(moe_model_config_path)
+    train_moe(
+        models,
+        moe_model,
+        train_loader,
+        valid_loader,
+        num_epochs=500,
+        lr=0.01,
+    )
+    moe_model_config = torch.load(f"{save_path}/moe_model_config.pth")
     moe_model.load_state_dict(moe_model_config["state_dict"])
     moe_model.eval()
 
@@ -431,7 +461,9 @@ def main():
     )
     console.print(results)
 
+    # -------------------------------------------------------------------------------------
     # Out-of-Distribution TF Evaluation for all models
+    # -------------------------------------------------------------------------------------
     if ood_folder is not None:
         chipseq_ood_files = load_files_from_folder(ood_folder)
         ood_loaders = [
@@ -463,5 +495,86 @@ def main():
         console.print(ood_results)
 
 
+def plot_results_roc(results_path, output_filename):
+    # Group ROC files by TF
+    roc_files = [
+        f for f in os.listdir(results_path) if f.endswith(".csv") and "model" in f
+    ]
+    roc_tf_files = {}
+    for roc_file in roc_files:
+        model_name = roc_file.split("_")[1]
+        test_tf = roc_file.split("_")[3]
+        test_tf = test_tf.split(".")[0]
+        if test_tf not in roc_tf_files:
+            roc_tf_files[test_tf] = []
+        roc_tf_files[test_tf].append(roc_file)
+
+    # Determine grid size for subplots
+    n = len(roc_tf_files)
+    if n <= 3:
+        cols = n
+        rows = 1
+        figsize = (5 * cols, 5)
+    else:
+        cols = 3
+        rows = (n + 2) // 3
+        figsize = (5 * cols, 5 * rows)
+
+    fig, axes = plt.subplots(rows, cols, figsize=figsize)
+
+    # Flatten axes array for easy indexing if it's multi-dimensional
+    if n == 1:
+        axes = [axes]
+    elif rows == 1:
+        axes = axes.flatten()
+    else:
+        axes = axes.flatten()
+
+    # Plot ROC curves for each TF
+    for idx, (tf, files) in enumerate(roc_tf_files.items()):
+        ax = axes[idx]
+        for file in files:
+            fpr, tpr = [], []
+            with open(f"{results_path}/{file}", "r") as f:
+                next(f)
+                for line in f:
+                    line = line.strip().split(",")
+                    fpr.append(float(line[0]))
+                    tpr.append(float(line[1]))
+            auc = metrics.auc(fpr, tpr)
+            model_name = file.split("_")[1]
+            if "moe" in file:
+                ax.plot(
+                    fpr,
+                    tpr,
+                    label=f"MoE (AUC = {auc:.2f})",
+                    linestyle="--",
+                    linewidth=2,
+                )
+            else:
+                ax.plot(
+                    fpr,
+                    tpr,
+                    label=f"{model_name} (AUC = {auc:.2f})",
+                    linewidth=2,
+                )
+        ax.plot([0, 1], [0, 1], "k--", linewidth=1)
+        ax.set_xlim([0.0, 1.0])
+        ax.set_ylim([0.0, 1.05])
+        ax.set_xlabel("False Positive Rate")
+        ax.set_ylabel("True Positive Rate")
+        ax.set_title(f"{tf} Transcription Factor")
+        ax.legend(loc="lower right")
+
+    # Remove empty subplots
+    for idx in range(len(roc_tf_files), len(axes)):
+        fig.delaxes(axes[idx])
+
+    plt.tight_layout()
+    plt.savefig(f"{results_path}/{output_filename}")
+
+
 if __name__ == "__main__":
     main()
+    plot_results_roc("./models/moe/results", "roc_curves_results.png")
+    plot_results_roc("./models/moe/ood", "roc_curves_ood.png")
