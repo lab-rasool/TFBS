@@ -1,0 +1,103 @@
+Evaluating models and MoE on Out-of-Distribution data...
+                                         
+              BCLAF1 [1/6]               
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Model         ┃ Mean AUC ┃    Std AUC ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━┩
+│ Expert_ARID3A │   0.6642 │ 1.1905e-03 │
+│ Expert_FOXM1  │   0.6732 │ 0.0000e+00 │
+│ Expert_GATA3  │   0.6111 │ 0.0000e+00 │
+│ MoE           │   0.6739 │ 2.8040e-03 │
+└───────────────┴──────────┴────────────┘
+
+Paired t-test results:
+Expert_0 vs MoE: t-statistic = -9.942484714380761, p-value = 3.75414770219425e-06
+Expert_1 vs MoE: t-statistic = -0.8074052817213814, p-value = 0.44024919768200577
+Expert_2 vs MoE: t-statistic = -67.26998386950639, p-value = 1.7903951320204694e-13
+
+ANOVA test: F-statistic = 3495.2686257392074, p-value = 2.0141409965630759e-44
+                                         
+               CTCF [2/6]                
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Model         ┃ Mean AUC ┃    Std AUC ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━┩
+│ Expert_ARID3A │   0.9434 │ 2.1474e-03 │
+│ Expert_FOXM1  │   0.8861 │ 1.1102e-16 │
+│ Expert_GATA3  │   0.7053 │ 0.0000e+00 │
+│ MoE           │   0.9082 │ 1.3999e-02 │
+└───────────────┴──────────┴────────────┘
+
+Paired t-test results:
+Expert_0 vs MoE: t-statistic = 7.922980281630099, p-value = 2.391147388570043e-05
+Expert_1 vs MoE: t-statistic = -4.743200422198899, p-value = 0.0010541905738296533
+Expert_2 vs MoE: t-statistic = -43.478837182361694, p-value = 8.993544464109084e-12
+
+ANOVA test: F-statistic = 2027.6976195655645, p-value = 3.4740777738177523e-40
+                                         
+              POLR2A [3/6]               
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Model         ┃ Mean AUC ┃    Std AUC ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━┩
+│ Expert_ARID3A │   0.5873 │ 1.8716e-03 │
+│ Expert_FOXM1  │   0.5991 │ 0.0000e+00 │
+│ Expert_GATA3  │   0.5762 │ 1.1102e-16 │
+│ MoE           │   0.6034 │ 9.8292e-04 │
+└───────────────┴──────────┴────────────┘
+
+Paired t-test results:
+Expert_0 vs MoE: t-statistic = -20.58616533573796, p-value = 7.0363997642966466e-09
+Expert_1 vs MoE: t-statistic = -13.078638571629034, p-value = 3.686979949081965e-07
+Expert_2 vs MoE: t-statistic = -83.0764986597819, p-value = 2.6869021439647726e-14
+
+ANOVA test: F-statistic = 1213.9791492139614, p-value = 3.307645113935979e-36
+                                         
+               RBBP5 [4/6]               
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Model         ┃ Mean AUC ┃    Std AUC ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━┩
+│ Expert_ARID3A │   0.6120 │ 1.2092e-03 │
+│ Expert_FOXM1  │   0.6536 │ 0.0000e+00 │
+│ Expert_GATA3  │   0.6346 │ 0.0000e+00 │
+│ MoE           │   0.6551 │ 1.7753e-03 │
+└───────────────┴──────────┴────────────┘
+
+Paired t-test results:
+Expert_0 vs MoE: t-statistic = -55.185933977496546, p-value = 1.0596745964097741e-12
+Expert_1 vs MoE: t-statistic = -2.641628184275225, p-value = 0.026842038500509573
+Expert_2 vs MoE: t-statistic = -34.731417164526306, p-value = 6.716780273436717e-11
+
+ANOVA test: F-statistic = 3168.8656577558286, p-value = 1.1685412548635324e-43
+                                         
+               SAP30 [5/6]               
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Model         ┃ Mean AUC ┃    Std AUC ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━┩
+│ Expert_ARID3A │   0.5925 │ 5.9601e-04 │
+│ Expert_FOXM1  │   0.6326 │ 1.1102e-16 │
+│ Expert_GATA3  │   0.6044 │ 0.0000e+00 │
+│ MoE           │   0.6242 │ 1.0980e-03 │
+└───────────────┴──────────┴────────────┘
+
+Paired t-test results:
+Expert_0 vs MoE: t-statistic = -64.27933623035358, p-value = 2.693782909381955e-13
+Expert_1 vs MoE: t-statistic = 23.025986458170948, p-value = 2.6121473887665104e-09
+Expert_2 vs MoE: t-statistic = -53.98474493005458, p-value = 1.291079746223178e-12
+
+ANOVA test: F-statistic = 7725.147614816742, p-value = 1.316625411311931e-50
+                                         
+               STAT3 [6/6]               
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Model         ┃ Mean AUC ┃    Std AUC ┃
+┡━━━━━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━┩
+│ Expert_ARID3A │   0.7067 │ 1.8703e-03 │
+│ Expert_FOXM1  │   0.7722 │ 1.1102e-16 │
+│ Expert_GATA3  │   0.7243 │ 1.1102e-16 │
+│ MoE           │   0.7536 │ 1.3816e-03 │
+└───────────────┴──────────┴────────────┘
+
+Paired t-test results:
+Expert_0 vs MoE: t-statistic = -57.564206907757786, p-value = 7.255695683214985e-13
+Expert_1 vs MoE: t-statistic = 40.33907681096157, p-value = 1.7601007458874166e-11
+Expert_2 vs MoE: t-statistic = -63.554999367899974, p-value = 2.9824217221333534e-13
+
+ANOVA test: F-statistic = 5702.703708196309, p-value = 3.0755166300855237e-48
