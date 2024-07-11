@@ -90,7 +90,7 @@ class MixtureOfExperts(nn.Module):
         # print("gating_weights: ", gating_weights)
         return (self.classifier(combined_embedding), gating_weights) if return_gates else self.classifier(combined_embedding)
 
-def run_moe(data, moe_model, nets, return_gates=False):
+def run_moe(data, moe_model, nets, return_gates=False, softmax=True):
     total_preds, total_targets = [], []
     separate_data = True if type(data) == list else False
     if separate_data:
@@ -101,7 +101,10 @@ def run_moe(data, moe_model, nets, return_gates=False):
     output = moe_model(concatenated, return_gates=return_gates)
     if return_gates:
         output, gating_weights = output
-    pred_sig = torch.sigmoid(output)
+    if softmax:
+        pred_sig = torch.sigmoid(output)
+    else:
+        pred_sig = output
     total_preds.extend(pred_sig.clone().detach().cpu().numpy())
     # total_targets.extend(target.clone().detach().cpu().numpy())
 
@@ -118,7 +121,7 @@ def attribute_image_features(algorithm, input, **kwargs):
     return tensor_attributions
 
 
-## ShiftSmooth
+## Vanilla Gradient
 def returnGradPred(img, net, magnitude=False, max_only=False, relu=False):
     
     img.requires_grad_(True)
@@ -191,13 +194,15 @@ def returnGradPredMoE(img, moe_model, nets, magnitude=False, max_only=False, gat
     
     return (Sc_dxs, pred)
 
+## ShiftSmooth
 def GetAttShiftSmooth(
   x_value, net, nshiftlr=1,
   magnitude=False, max_only=False, moe_model=None, mask = None, og_img=None,
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu"), 
   exclude_nonmotif=None, 
 #   exclude_nonmotif = ["GATAA", "TTATC"],
-  visual_debug=False, relu=False):
+  visual_debug=False, relu=False,
+  gate_scaling=False):
     
     # device = net.device
     # device = x_value.device
@@ -239,7 +244,7 @@ def GetAttShiftSmooth(
                 crp_df_original_logo = create_logo(view_x, figsize=[50, 2.5])
 
             if moe_model is not None:
-                gradient, pred = returnGradPredMoE(x_shifted.clone().detach().to(device), moe_model, nets=net, relu=relu) 
+                gradient, pred = returnGradPredMoE(x_shifted.clone().detach().to(device), moe_model, nets=net, relu=relu, gate_scaling=gate_scaling) 
             else: 
                 gradient, pred = returnGradPred(x_shifted.clone().detach().to(device), net=net, relu=relu)
 
@@ -294,13 +299,13 @@ def create_motif(seq="00000", include_reverse=False):
     # Create a list of nucleotides
     nucleotides = ["A", "C", "G", "T"]
 
-    motif_seq = torch.zeros((4, 5))
+    motif_seq = torch.zeros((4, len(seq)))
     
     for idx, nucleotide in enumerate(seq):
         motif_seq[nucleotides.index(nucleotide), idx] = 1
     
     if include_reverse:
-        reverse_seq = torch.flip(motif_seq, [0, 1])
+        reverse_seq = torch.flip(motif_seq, [1, 0])
         return motif_seq, reverse_seq
     else:
         return motif_seq
