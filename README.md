@@ -80,15 +80,6 @@ To train and evaluate the models, use the following commands:
 
 The results of the evaluation are presented using various metrics, including the Area Under the Curve (AUC). The MoE model generally outperforms individual expert models, demonstrating higher AUC scores and greater robustness.
 
-### Performance Comparison
-
-| Model      | BCLAF1     | CTCF       | POLR2A     | RBBP5      | SAP30      | STAT3      |
-|------------|------------|------------|------------|------------|------------|------------|
-| ARID3A     | 0.6672 ± 0.0020 | 0.9153 ± 0.0011 | 0.5893 ± 0.0012 | 0.6529 ± 0.0010 | 0.5988 ± 0.0011 | 0.7241 ± 0.0012 |
-| FOXM1      | 0.6923 ± 0.0000 | 0.8331 ± 0.0000 | 0.6168 ± 0.0000 | 0.6555 ± 0.0000 | 0.6489 ± 0.0000 | 0.7836 ± 0.0000 |
-| GATA3      | 0.5792 ± 0.0000 | 0.6759 ± 0.0000 | 0.5490 ± 0.0000 | 0.6052 ± 0.0000 | 0.5843 ± 0.0000 | 0.7009 ± 0.0000 |
-| MoE        | 0.6728 ± 0.0022 | 0.9029 ± 0.0056 | 0.5970 ± 0.0010 | 0.6705 ± 0.0012 | 0.6159 ± 0.0021 | 0.7460 ± 0.0009 |
-
 ### Statistical Analysis
 
 - **Paired t-tests** and **ANOVA tests** were conducted to evaluate the statistical significance of performance differences between the expert models and the MoE model.

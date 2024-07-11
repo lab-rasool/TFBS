@@ -515,7 +515,8 @@ def plot_results(all_results, title):
     ax.legend(loc="upper left", title="Model")
 
     plt.tight_layout()
-    plt.show()
+    # plt.show()
+    plt.savefig("results.png")
 
 
 def main():
