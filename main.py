@@ -192,7 +192,6 @@ def objective(trial, train_loader, valid_loader):
             best_auc = avg_auc
     return best_auc
 
-
 def main():
     parser = argparse.ArgumentParser(
         description="Train and evaluate ConvNet models for ChIP-seq data."
@@ -224,11 +223,12 @@ def main():
     os.makedirs(f"{save_path}/experts", exist_ok=True)
     os.makedirs(f"{save_path}/moe", exist_ok=True)
 
+    chiqseq_train_files = load_files_from_folder(train_folder)
+
     # -------------------------------------------------------------------------------------
     # Find Best Individual Expert Model Hyperparameters
     # -------------------------------------------------------------------------------------
     # Optimize hyperparameters for each training file
-    chiqseq_train_files = load_files_from_folder(train_folder)
     best_hyperparameters_list = []
     for i, train_file in enumerate(chiqseq_train_files):
         alldataset = ChipDataLoader(train_file).load_data()
@@ -311,9 +311,7 @@ def main():
         combined_data.extend(data)
 
     # Split data into training and validation sets
-    train_data, valid_data = train_test_split(
-        combined_data, test_size=0.2, stratify=[label for _, label in combined_data]
-    )
+    train_data, valid_data = train_test_split(combined_data, test_size=0.2)
     train_loader = DataLoader(
         dataset=chipseq_dataset(train_data), batch_size=batch_size, shuffle=True
     )
@@ -332,6 +330,8 @@ def main():
     ]
     models = [load_model(path, config) for path, config in zip(model_paths, configs)]
     moe_model = MixtureOfExperts(num_experts=len(models), embedding_size=32).to(device)
+
+    # Train MixtureOfExperts model
     train_moe(
         models,
         moe_model,
@@ -339,7 +339,7 @@ def main():
         valid_loader,
         save_path=save_path,
         num_epochs=500,
-        lr=0.01,
+        lr=0.1,
     )
 
 if __name__ == "__main__":
