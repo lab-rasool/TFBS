@@ -207,11 +207,11 @@ def GetAttShiftSmooth(
     # device = net.device
     # device = x_value.device
     # softmax = torch.nn.Softmax(dim=1) if max_only else None
-    x_np = torch.tensor(x_value)
-    og_img = torch.tensor(og_img)
+    x_np = x_value.clone().detach()#torch.tensor(x_value)
+    og_img = og_img.clone().detach()#torch.tensor(og_img)
     
     k = 0
-    total_gradients = torch.tensor(torch.zeros_like(og_img)).to(device)
+    total_gradients = torch.zeros_like(og_img).clone().detach().to(device)
     
     for i in range(nshiftlr*2 + 1):
         
@@ -269,7 +269,9 @@ def GetAttShiftSmooth(
 
 
 ## Motifs
-def create_logo(data, figsize, scale_data=False, visible_spines=None):
+def create_logo(data, figsize, scale_data=False, visible_spines=None, 
+                ylims=None, xlims=None, ylabel="", remove_y_axis_numbers=False,
+                highlight_range1=None, highlight_range2=None, highlight_color1='lightcyan', highlight_color2='honeydew'):
     if visible_spines is None:
         visible_spines = ["left", "bottom"]
     
@@ -289,9 +291,26 @@ def create_logo(data, figsize, scale_data=False, visible_spines=None):
     # Style the logo
     logo.style_spines(visible=False)
     logo.style_spines(spines=visible_spines, visible=True)
-    logo.ax.set_ylabel("", labelpad=-1)
+    logo.ax.set_ylabel(ylabel, labelpad=-1)
     logo.ax.xaxis.set_ticks_position("none")
     logo.ax.xaxis.set_tick_params(pad=-1)
+    if highlight_range1 is not None:
+        logo.highlight_position_range(pmin=highlight_range1[0], pmax=highlight_range1[1], color=highlight_color1)
+    if highlight_range2 is not None:
+        logo.highlight_position_range(pmin=highlight_range2[0], pmax=highlight_range2[1], color=highlight_color2)
+
+    # Set y-axis limits if provided
+    if ylims is not None:
+        logo.ax.set_ylim(ylims)
+
+    # Set x-axis limits if provided
+    if xlims is not None:
+        logo.ax.set_xlim(xlims)
+
+    # Remove y-axis numbers if specified
+    if remove_y_axis_numbers:
+        logo.ax.yaxis.set_ticks([])
+
     return logo
 
 def create_motif(seq="00000", include_reverse=False):
@@ -322,3 +341,11 @@ def seq_to_string(seq):
         elif seq[3, i] == 1:
             seq_str += "T"
     return seq_str
+
+def string_to_seq(seq_str):
+    nucleotides = {"A": 0, "C": 1, "G": 2, "T": 3}
+    seq = torch.zeros((4, len(seq_str)), dtype=torch.float32)
+    for i, nucleotide in enumerate(seq_str):
+        if nucleotide in nucleotides:
+            seq[nucleotides[nucleotide], i] = 1
+    return seq
