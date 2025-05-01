@@ -271,7 +271,9 @@ def GetAttShiftSmooth(
 ## Motifs
 def create_logo(data, figsize, scale_data=False, visible_spines=None, 
                 ylims=None, xlims=None, ylabel="", remove_y_axis_numbers=False,
-                highlight_range1=None, highlight_range2=None, highlight_color1='lightcyan', highlight_color2='honeydew'):
+                highlight_range1=None, highlight_range2=None, 
+                highlight_color1='lightcyan', highlight_color2='honeydew',
+                edgecolor1='blue', edgecolor2='green'):
     if visible_spines is None:
         visible_spines = ["left", "bottom"]
     
@@ -295,9 +297,11 @@ def create_logo(data, figsize, scale_data=False, visible_spines=None,
     logo.ax.xaxis.set_ticks_position("none")
     logo.ax.xaxis.set_tick_params(pad=-1)
     if highlight_range1 is not None:
-        logo.highlight_position_range(pmin=highlight_range1[0], pmax=highlight_range1[1], color=highlight_color1)
+        logo.highlight_position_range(pmin=highlight_range1[0], pmax=highlight_range1[1], 
+                                      color=highlight_color1, edgecolor=edgecolor1, padding=0.05)
     if highlight_range2 is not None:
-        logo.highlight_position_range(pmin=highlight_range2[0], pmax=highlight_range2[1], color=highlight_color2)
+        logo.highlight_position_range(pmin=highlight_range2[0], pmax=highlight_range2[1], 
+                                      color=highlight_color2, edgecolor=edgecolor2, padding=0.05)
 
     # Set y-axis limits if provided
     if ylims is not None:
