@@ -1,5 +1,3 @@
-/data
 /old
+/backup
 __pycache__
-*.db
-*.pth
