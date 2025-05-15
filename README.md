@@ -85,6 +85,10 @@ The results of the evaluation are presented using various metrics, including the
 - **Paired t-tests** and **ANOVA tests** were conducted to evaluate the statistical significance of performance differences between the expert models and the MoE model.
 - Significant improvements in AUC scores were observed with the MoE model, confirming its enhanced generalization and robustness.
 
+### Attribution Results
+
+All attribution results shown in chapter 5 of our paper can be recreated by running `attributes_motif.ipynb` and `attributes_ood.ipynb`.
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
