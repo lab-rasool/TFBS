@@ -91,4 +91,4 @@ All attribution results shown in chapter 5 of our paper can be recreated by runn
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+See the [LICENSE](LICENSE) file for more details.
