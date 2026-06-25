@@ -1,0 +1,32 @@
+\begin{table}[ht]
+\centering
+\caption{One-way ANOVA and paired-bootstrap post-hoc comparisons (B=1000 resamples, inference dropout disabled, balanced test sets). In-distribution datasets.}
+\label{tab:optionB_indist}
+\begin{tabular}{lrrrrclrrr}
+\hline
+Dataset & $F(3,116)$ & $p$ & $\eta^2$ & $\omega^2$ & Best & MoE rank & $\Delta$ARID3A & $\Delta$FOXM1 & $\Delta$GATA3 \\
+\hline
+ARID3A & 12381.1 & $<10^{-15}$ & 0.903 & 0.903 & ARID3A & 4/4 & -0.1363 & -0.0141 & -0.0439 \\
+FOXM1 & 8380.3 & $<10^{-15}$ & 0.863 & 0.863 & FOXM1 & 2/4 & +0.0731 & -0.0241 & +0.0743 \\
+GATA3 & 9945.9 & $<10^{-15}$ & 0.882 & 0.882 & GATA3 & 3/4 & +0.0019 & -0.0118 & -0.1146 \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{One-way ANOVA and paired-bootstrap post-hoc comparisons (B=1000 resamples, inference dropout disabled, balanced test sets). Out-of-distribution datasets.}
+\label{tab:optionB_ood}
+\begin{tabular}{lrrrrclrrr}
+\hline
+Dataset & $F(3,116)$ & $p$ & $\eta^2$ & $\omega^2$ & Best & MoE rank & $\Delta$ARID3A & $\Delta$FOXM1 & $\Delta$GATA3 \\
+\hline
+BCLAF1 & 8917.3 & $<10^{-15}$ & 0.870 & 0.870 & FOXM1 & 2/4 & +0.0686 & -0.0054 & +0.1002 \\
+CTCF & 104103.9 & $<10^{-15}$ & 0.987 & 0.987 & ARID3A & 3/4 & -0.1767 & -0.0583 & +0.1871 \\
+POLR2A & 13446.2 & $<10^{-15}$ & 0.910 & 0.910 & FOXM1 & 2/4 & +0.1165 & -0.0010 & +0.1105 \\
+RBBP5 & 4630.2 & $<10^{-15}$ & 0.777 & 0.776 & FOXM1 & 2/4 & +0.0758 & -0.0011 & +0.0584 \\
+SAP30 & 7622.4 & $<10^{-15}$ & 0.851 & 0.851 & FOXM1 & 2/4 & +0.0747 & -0.0058 & +0.0878 \\
+STAT3 & 1774.2 & $<10^{-15}$ & 0.571 & 0.571 & FOXM1 & 2/4 & +0.0036 & -0.0105 & +0.0421 \\
+\hline
+\end{tabular}
+\end{table}

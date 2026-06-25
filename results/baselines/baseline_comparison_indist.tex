@@ -1,0 +1,18 @@
+\begin{table}[ht]
+\centering
+\caption{Mean AUC (B=1000 bootstrap) on the in-distribution 50/50 held-out sets. All models share the identical evaluation protocol.}
+\label{tab:baselines_indist}
+\begin{tabular}{lrrrr}
+\hline
+Model & ARID3A & FOXM1 & GATA3 & mean \\
+\hline
+MoE & 0.710 & 0.687 & 0.722 & 0.707 \\
+ARID3A-expert & 0.755 & 0.575 & 0.622 & 0.651 \\
+FOXM1-expert & 0.590 & 0.725 & 0.615 & 0.643 \\
+GATA3-expert & 0.601 & 0.589 & 0.781 & 0.657 \\
+DeepSEA & 0.721 & 0.740 & 0.741 & 0.734 \\
+DanQ & 0.713 & 0.729 & 0.736 & 0.726 \\
+DNABERT & 0.779 & 0.780 & 0.767 & 0.775 \\
+\hline
+\end{tabular}
+\end{table}

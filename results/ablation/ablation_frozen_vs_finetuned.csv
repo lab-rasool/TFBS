@@ -1,0 +1,3 @@
+experts,in_distribution_meanAUC,ood_meanAUC,moe_train_seconds,trainable_params
+frozen,0.6805539958426552,0.657625013718914,5.5,3492
+fine-tuned,0.7040858460368797,0.6553806339973712,497.7,11047

@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tfbs"
+version = "0.1.0"
+description = "Heterogeneous embedding-gated Mixture-of-Experts for transcription-factor binding-site prediction and OOD generalization."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Aakash Tripathi" }]
+dependencies = [
+    "torch>=2.8",
+    "transformers>=4.57",
+    "numpy>=2.2",
+    "pandas>=2.3",
+    "scipy>=1.16",
+    "scikit-learn>=1.8",
+    "matplotlib>=3.10",
+    "rich",
+]
+
+[project.optional-dependencies]
+hpsearch = ["optuna>=4"]
+attribution = ["logomaker", "biopython"]
+
+# The importable library is the `tfbs` package; runnable CLIs live under
+# `experiments/` and are invoked as modules (e.g. `python -m experiments.train.evaluate`).
+[tool.setuptools]
+packages = ["tfbs"]

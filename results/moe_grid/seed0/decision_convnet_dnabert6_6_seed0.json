@@ -1,0 +1,204 @@
+{
+  "tag": "convnet_dnabert6_6",
+  "seed": 0,
+  "num_experts": 6,
+  "config": {
+    "l2norm": true,
+    "entropy_reg": 0.001,
+    "gate_temperature": 1.0,
+    "embedding_dim": 32
+  },
+  "expert_order": [
+    "ConvNet::ARID3A",
+    "ConvNet::FOXM1",
+    "ConvNet::GATA3",
+    "DNABERT6::ARID3A",
+    "DNABERT6::FOXM1",
+    "DNABERT6::GATA3"
+  ],
+  "gate_val_auc": 0.9489135231048079,
+  "mean_gate_entropy": 1.579456541273329,
+  "ood_mean_hetmoe": 0.7755206666666666,
+  "ood_mean_oracle": 0.7820079999999999,
+  "ood_mean_static": 0.747419,
+  "ood_learnable_hetmoe": 0.83176,
+  "ood_learnable_oracle": 0.84997,
+  "ood_indirect_hetmoe": 0.747401,
+  "indist_mean_hetmoe": 0.8299433333333334,
+  "dnabert_ref_ood": 0.7492,
+  "deepsea_ref_ood": 0.6918,
+  "danq_ref_ood": 0.6881,
+  "per_dataset": {
+    "in_distribution::ARID3A": {
+      "data_type": "in_distribution",
+      "tf": "ARID3A",
+      "hetmoe_auc": 0.80556,
+      "static_mean_auc": 0.74644,
+      "oracle_auc": 0.826344,
+      "best_expert": "DNABERT6::ARID3A",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6994,
+        "ConvNet::FOXM1": 0.5932,
+        "ConvNet::GATA3": 0.5519,
+        "DNABERT6::ARID3A": 0.8263,
+        "DNABERT6::FOXM1": 0.6981,
+        "DNABERT6::GATA3": 0.7171
+      },
+      "hetmoe_brier": 0.20407645991560877,
+      "hetmoe_ece": 0.1460942189656198,
+      "gate_entropy": 1.5404525995254517
+    },
+    "in_distribution::FOXM1": {
+      "data_type": "in_distribution",
+      "tf": "FOXM1",
+      "hetmoe_auc": 0.839772,
+      "static_mean_auc": 0.7900319999999998,
+      "oracle_auc": 0.879216,
+      "best_expert": "DNABERT6::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5797,
+        "ConvNet::FOXM1": 0.687,
+        "ConvNet::GATA3": 0.5644,
+        "DNABERT6::ARID3A": 0.7246,
+        "DNABERT6::FOXM1": 0.8792,
+        "DNABERT6::GATA3": 0.7283
+      },
+      "hetmoe_brier": 0.18758350530118265,
+      "hetmoe_ece": 0.13671421171724799,
+      "gate_entropy": 1.6209336519241333
+    },
+    "in_distribution::GATA3": {
+      "data_type": "in_distribution",
+      "tf": "GATA3",
+      "hetmoe_auc": 0.844498,
+      "static_mean_auc": 0.776664,
+      "oracle_auc": 0.8788119999999999,
+      "best_expert": "DNABERT6::GATA3",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.598,
+        "ConvNet::FOXM1": 0.616,
+        "ConvNet::GATA3": 0.6399,
+        "DNABERT6::ARID3A": 0.7277,
+        "DNABERT6::FOXM1": 0.6915,
+        "DNABERT6::GATA3": 0.8788
+      },
+      "hetmoe_brier": 0.2013843031115848,
+      "hetmoe_ece": 0.17439492317289115,
+      "gate_entropy": 1.378885269165039
+    },
+    "out_of_distribution::BCLAF1": {
+      "data_type": "out_of_distribution",
+      "tf": "BCLAF1",
+      "hetmoe_auc": 0.7695839999999999,
+      "static_mean_auc": 0.7312359999999999,
+      "oracle_auc": 0.7510439999999998,
+      "best_expert": "DNABERT6::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5854,
+        "ConvNet::FOXM1": 0.6429,
+        "ConvNet::GATA3": 0.545,
+        "DNABERT6::ARID3A": 0.7032,
+        "DNABERT6::FOXM1": 0.751,
+        "DNABERT6::GATA3": 0.6656
+      },
+      "hetmoe_brier": 0.2120923263346661,
+      "hetmoe_ece": 0.12604589525237678,
+      "gate_entropy": 1.6104356050491333
+    },
+    "out_of_distribution::CTCF": {
+      "data_type": "out_of_distribution",
+      "tf": "CTCF",
+      "hetmoe_auc": 0.902036,
+      "static_mean_auc": 0.8240719999999999,
+      "oracle_auc": 0.917352,
+      "best_expert": "ConvNet::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6162,
+        "ConvNet::FOXM1": 0.9174,
+        "ConvNet::GATA3": 0.5753,
+        "DNABERT6::ARID3A": 0.761,
+        "DNABERT6::FOXM1": 0.8117,
+        "DNABERT6::GATA3": 0.6337
+      },
+      "hetmoe_brier": 0.17504558411069263,
+      "hetmoe_ece": 0.17407981350272894,
+      "gate_entropy": 1.6271376609802246
+    },
+    "out_of_distribution::POLR2A": {
+      "data_type": "out_of_distribution",
+      "tf": "POLR2A",
+      "hetmoe_auc": 0.7452239999999999,
+      "static_mean_auc": 0.729912,
+      "oracle_auc": 0.755088,
+      "best_expert": "DNABERT6::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5548,
+        "ConvNet::FOXM1": 0.6053,
+        "ConvNet::GATA3": 0.5526,
+        "DNABERT6::ARID3A": 0.6989,
+        "DNABERT6::FOXM1": 0.7551,
+        "DNABERT6::GATA3": 0.6824
+      },
+      "hetmoe_brier": 0.22770232173381824,
+      "hetmoe_ece": 0.14273292149603367,
+      "gate_entropy": 1.616694450378418
+    },
+    "out_of_distribution::RBBP5": {
+      "data_type": "out_of_distribution",
+      "tf": "RBBP5",
+      "hetmoe_auc": 0.7386079999999999,
+      "static_mean_auc": 0.731284,
+      "oracle_auc": 0.7441199999999999,
+      "best_expert": "DNABERT6::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5727,
+        "ConvNet::FOXM1": 0.6151,
+        "ConvNet::GATA3": 0.5679,
+        "DNABERT6::ARID3A": 0.72,
+        "DNABERT6::FOXM1": 0.7441,
+        "DNABERT6::GATA3": 0.7012
+      },
+      "hetmoe_brier": 0.23394077036539193,
+      "hetmoe_ece": 0.15182862195745112,
+      "gate_entropy": 1.6224285364151
+    },
+    "out_of_distribution::SAP30": {
+      "data_type": "out_of_distribution",
+      "tf": "SAP30",
+      "hetmoe_auc": 0.7361880000000001,
+      "static_mean_auc": 0.726914,
+      "oracle_auc": 0.7418560000000001,
+      "best_expert": "DNABERT6::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5689,
+        "ConvNet::FOXM1": 0.5978,
+        "ConvNet::GATA3": 0.536,
+        "DNABERT6::ARID3A": 0.7041,
+        "DNABERT6::FOXM1": 0.7419,
+        "DNABERT6::GATA3": 0.6815
+      },
+      "hetmoe_brier": 0.23585018251211287,
+      "hetmoe_ece": 0.15301698328554628,
+      "gate_entropy": 1.6293120384216309
+    },
+    "out_of_distribution::STAT3": {
+      "data_type": "out_of_distribution",
+      "tf": "STAT3",
+      "hetmoe_auc": 0.761484,
+      "static_mean_auc": 0.741096,
+      "oracle_auc": 0.7825880000000001,
+      "best_expert": "DNABERT6::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5906,
+        "ConvNet::FOXM1": 0.5999,
+        "ConvNet::GATA3": 0.5588,
+        "DNABERT6::ARID3A": 0.7339,
+        "DNABERT6::FOXM1": 0.7826,
+        "DNABERT6::GATA3": 0.6962
+      },
+      "hetmoe_brier": 0.2322198350647325,
+      "hetmoe_ece": 0.17273914796859027,
+      "gate_entropy": 1.56882905960083
+    }
+  }
+}
