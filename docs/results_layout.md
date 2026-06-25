@@ -8,11 +8,11 @@ What each subdirectory holds and which command regenerates it. Small summary art
 |------|----------|-------------|----------|
 | `evaluation_summary.csv`, `evaluation_results.json`, `bootstrap_paired.csv` | yes | `experiments.train.evaluate --protocol rigorous` | per-model bootstrap AUC + 95% CI; deterministic predictions; paired MoE−expert diffs |
 | `roc_curves_*.png` | yes | `experiments.train.evaluate` | ROC curves (in-dist / OOD) |
-| `figures/` | yes | `experiments.analysis.make_figures` | publication figures (PDF + 300 dpi PNG) |
+| `figures/nature/` | yes | `experiments.analysis.make_paper_figures` | Nature-style figure pack (PDF + 600 dpi PNG) + stats_summary.md |
 | `stats/` | yes | `experiments.analysis.stats` | ANOVA + η²/ω² + post-hoc tables |
 | `baselines/` | yes | `experiments.baselines.baselines` | DeepSEA/DanQ/DNABERT comparison (CSV + LaTeX) |
 | `ablation/` | yes | `experiments.ablation.ablation` | embedding-size / frozen / N_e sweeps |
-| `attribution/`, `attributions/` | yes | `experiments.attribution.shiftsmooth_eval` + notebooks | ShiftSmooth faithfulness/stability + figures |
+| `attribution/` | yes | `experiments.attribution.shiftsmooth_eval` + notebooks | ShiftSmooth faithfulness/stability + figures |
 | `hetmoe/seed<N>/` | yes (small) | `experiments.hetmoe.sweep` | `hetmoe_summary.csv`, `hetmoe_eval.json`, paired-vs-DNABERT |
 | `moe_grid/seed<N>/` | yes (small) | `experiments.hetmoe.sweep` | per-config `decision_*.json` (sweep + selection) |
 | **`cache/seed<N>/`** | **no (gitignored)** | `experiments.hetmoe.cache_embeddings` (Phase A, GPU) | per-(expert,dataset) embedding `.npz` + DNABERT-6 baseline preds + `manifest.json` (hundreds of MB/seed) |

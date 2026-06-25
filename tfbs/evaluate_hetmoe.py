@@ -6,13 +6,12 @@ import json
 import os
 
 import numpy as np
-from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
 from tfbs.constants import TRAIN_TFS, OOD_TFS, OOD_LEARNABLE, OOD_INDIRECT
 from tfbs.experts import build_zoo, _cdir, _load_dnabert_baseline
 from tfbs.gate import train_gate, gate_predict
-from tfbs.metrics import auc, brier, ece
+from tfbs.metrics import auc, brier, ece, paired_bootstrap
 
 
 def run_config(zoo, seed=42, l2norm=True, entropy_reg=1e-3, gate_temperature=1.0,
@@ -153,16 +152,7 @@ def full_evaluation(zoo, seed=42, l2norm=True, entropy_reg=1e-3, gate_temperatur
                  "best_single": pred[k][best_single_idx]}
         if dnabert is not None:
             preds["DNABERT"] = dnabert[k]
-        n = len(y)
-        rng = np.random.default_rng(base_seed + keys.index(k))
-        boot = {m: np.empty(n_boot) for m in preds}
-        for b in range(n_boot):
-            ridx = rng.integers(0, n, n)
-            if y[ridx].min() == y[ridx].max():
-                ridx = rng.integers(0, n, n)
-            yb = y[ridx]
-            for m in preds:
-                boot[m][b] = roc_auc_score(yb, preds[m][ridx])
+        boot = paired_bootstrap(preds, y, base_seed + keys.index(k), n_boot)
         rec = {"data_type": dtype, "tf": tf}
         for m in preds:
             lo, hi = np.percentile(boot[m], [2.5, 97.5])

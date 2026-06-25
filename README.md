@@ -25,13 +25,13 @@ tfbs/            importable library
   utils.py       seeding, early stopping, file discovery
 experiments/     runnable CLIs (thin wrappers; run as `python -m experiments.<group>.<name>`)
   train/         main.py (two-stage training), evaluate.py (canonical evaluation)
-  hetmoe/        cache_embeddings, sweep, decision_gate, single_config, aggregate_seeds
+  hetmoe/        cache_embeddings, sweep, decision_gate, aggregate_seeds
   baselines/     baselines.py (comparison CLI)
   ablation/      ablation.py
   attribution/   shiftsmooth_eval.py + notebooks
-  analysis/      stats.py, make_figures.py, make_hetmoe_report.py, data_quality.py
+  analysis/      stats.py, make_paper_figures.py, data_quality.py
 data/            ChIP-seq inputs (see data/README.md for conventions)
-models/          experts/ moe/ hyperparams/ (tracked); zoo/ (gitignored, regenerated)
+models/          checkpoints — gitignored, kept local (data + models to be HuggingFace-hosted)
 results/         summaries + figures tracked; cache/ gitignored (see docs/results_layout.md)
 slurm/           cluster job scripts
 docs/            results report, reviewer responses, reproduce.md, results_layout.md
@@ -76,14 +76,16 @@ python -m experiments.hetmoe.aggregate_seeds
 python -m experiments.baselines.baselines
 python -m experiments.ablation.ablation
 python -m experiments.attribution.shiftsmooth_eval --n_seqs 60
-python -m experiments.analysis.make_figures
+python -m experiments.analysis.make_paper_figures
 ```
 
 On the cluster, submit the chained SLURM jobs in `slurm/` (see `docs/reproduce.md`).
 
 ## Results & reproducibility
 
-The original MoE and the HetMoE pipelines are reproducible from the saved checkpoints/cache. See
+The original MoE and the HetMoE pipelines are reproducible from the saved checkpoints/cache.
+**Model checkpoints (`models/`) are not committed** — they're kept local for now and will be hosted on
+HuggingFace (together with the data); regenerate them via training, or request them. See
 [`docs/reproduce.md`](docs/reproduce.md) for exact commands **and important reproducibility caveats**
 (the conv bias `wRect` is not persisted, and expert order derives from `os.listdir`, so headline
 numbers are deterministic per machine but not bit-portable across machines). Attribution results are

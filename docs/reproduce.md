@@ -38,7 +38,7 @@ python -m experiments.hetmoe.aggregate_seeds  # multi-seed mean +/- std
 python -m experiments.baselines.baselines [--skip_dnabert]   # DeepSEA/DanQ/DNABERT comparison
 python -m experiments.ablation.ablation                      # embedding / frozen / num_experts sweeps
 python -m experiments.attribution.shiftsmooth_eval --n_seqs 60
-python -m experiments.analysis.make_figures                  # regenerate figures
+python -m experiments.analysis.make_paper_figures            # Nature figure pack -> results/figures/nature/
 ```
 
 ---

@@ -22,3 +22,26 @@ def ece(y, p, bins=10):
 
 def auc(y, p):
     return float(roc_auc_score(y, p)) if len(set(y)) > 1 else float("nan")
+
+
+def paired_bootstrap(preds, y, seed, n_boot=1000):
+    """Paired percentile bootstrap of AUROC.
+
+    ``preds`` maps model name -> probability array; one **common** resample index
+    per replicate is shared across all models, so model-vs-model comparisons are
+    paired. A degenerate (single-class) resample is redrawn once. Deterministic
+    given ``seed``. Returns ``{name: np.ndarray(n_boot)}`` (insertion order of
+    ``preds`` preserved).
+    """
+    y = np.asarray(y)
+    n = len(y)
+    rng = np.random.default_rng(seed)
+    boot = {m: np.empty(n_boot) for m in preds}
+    for b in range(n_boot):
+        idx = rng.integers(0, n, n)
+        if y[idx].min() == y[idx].max():
+            idx = rng.integers(0, n, n)
+        yb = y[idx]
+        for m in preds:
+            boot[m][b] = roc_auc_score(yb, preds[m][idx])
+    return boot

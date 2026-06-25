@@ -1,4 +1,11 @@
 
+"""Legacy attribution helpers for the attribution notebooks (attributes_motif.ipynb,
+attributes_ood.ipynb). Self-contained on purpose: the ``MixtureOfExperts`` below is the
+ORIGINAL pre-refactor gate architecture the notebook checkpoints were trained with, and
+``Chip_test`` / ``seqtopad`` mirror the notebook's data path -- do NOT replace them with
+the ``tfbs.*`` equivalents (different architecture / interface). Modern attribution lives
+in ``shiftsmooth_eval.py``.
+"""
 import csv
 import gzip
 import logomaker
@@ -8,9 +15,6 @@ import torch
 from captum.attr import DeepLift, Saliency
 from captum.attr import visualization as viz
 from torch.utils.data import DataLoader
-
-from tfbs.models import ConvNet
-from tfbs.data import chipseq_dataset
 
 def seqtopad(sequence, motiflen, kind="DNA"):
     rows = len(sequence) + 2 * motiflen - 2
