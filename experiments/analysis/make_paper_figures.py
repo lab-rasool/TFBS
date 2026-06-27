@@ -158,6 +158,65 @@ def fig_8_gate_routing(d):
     save(fig, "fig_8_gate_routing", outdir=PAPER)
 
 
+def reliability(probs, y, bins=10):
+    edges = np.linspace(0, 1, bins + 1)
+    xs, ys, ws = [], [], []
+    for b in range(bins):
+        m = (probs >= edges[b]) & (probs < edges[b + 1] if b < bins - 1 else probs <= edges[b + 1])
+        if m.sum() == 0:
+            continue
+        xs.append(probs[m].mean()); ys.append(y[m].mean()); ws.append(m.sum())
+    ece = sum(w * abs(x - yv) for x, yv, w in zip(xs, ys, ws)) / max(1, sum(ws))
+    return np.array(xs), np.array(ys), np.array(ws), float(ece)
+
+
+def _persample_motif(seed):
+    """Per-sample (probs, y) pooled over the 23 motif-OOD factors for HetMoE (the selected
+    21-expert gate, retrained deterministically over the cached embeddings -- same path that
+    produced the JSON) and the DNABERT-6 mean-ensemble baseline (cache). No expert training."""
+    from sklearn.model_selection import train_test_split
+    from tfbs.experts import load_zoo_cache, subset_zoo
+    from tfbs.gate import train_gate, gate_predict
+    zoo = subset_zoo(load_zoo_cache(seed), backbones=["ConvNet", "DeepSEA", "DanQ"])
+    emb, Y = zoo["emb"], zoo["y"]
+    E, ne = zoo["embedding_dim"], len(zoo["expert_order"])
+    tr = [f"train::{tf}" for tf in TRAIN_TFS]
+    Xtr = np.concatenate([emb[k] for k in tr], 0)
+    ytr = np.concatenate([Y[k] for k in tr], 0)
+    itr, iva = train_test_split(np.arange(len(ytr)), test_size=0.2, random_state=seed)
+    moe, _ = train_gate(Xtr[itr], ytr[itr], Xtr[iva], ytr[iva], ne, E, seed,
+                        l2norm=True, entropy_reg=1e-3, gate_temperature=1.0)
+    hp, hy = [], []
+    for tf in MOTIF:
+        p, _ = gate_predict(moe, emb[f"out_of_distribution::{tf}"])
+        hp.append(p); hy.append(Y[f"out_of_distribution::{tf}"])
+    cdir = f"results/cache/seed{seed}{MODE_SUFFIX}"
+    dp, dy = [], []
+    for tf in MOTIF:
+        ps = [np.load(f"{cdir}/DNABERT6_{t}__out_of_distribution_{tf}.npz")["pred"]
+              for t in TRAIN_TFS]
+        dp.append(np.mean(ps, 0))
+        dy.append(np.load(f"{cdir}/DNABERT6_{TRAIN_TFS[0]}__out_of_distribution_{tf}.npz")["y"])
+    return np.concatenate(hp), np.concatenate(hy), np.concatenate(dp), np.concatenate(dy)
+
+
+def fig_9_calibration(seed):
+    """Reliability diagram (motif-OOD pooled), HetMoE vs DNABERT-6, ECE in legend."""
+    hp, hy, dp, dy = _persample_motif(seed)
+    fig, ax = plt.subplots(figsize=(COL1, COL1))
+    ax.plot([0, 1], [0, 1], ls=":", lw=0.6, color="black", zorder=1)
+    eces = {}
+    for lab, key, p, y in [("HetMoE", "HetMoE", hp, hy), ("DNABERT-6", "DNABERT", dp, dy)]:
+        xs, ys, ws, ece = reliability(p, y)
+        eces[lab] = ece
+        ax.plot(xs, ys, "-o", color=color(key), ms=3, lw=1.0, label=f"{lab} (ECE={ece:.3f})")
+    ax.set_xlabel("mean predicted P(bound)"); ax.set_ylabel("observed fraction bound")
+    ax.set_xlim(0, 1); ax.set_ylim(0, 1); ax.set_aspect("equal")
+    ax.legend(loc="upper left", fontsize=5.5)
+    save(fig, "fig_9_calibration", outdir=PAPER)
+    return eces
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=42)
@@ -169,6 +228,8 @@ def main():
     fig_6_ood_strata(d)
     fig_7_multiseed()
     fig_8_gate_routing(d)
+    eces = fig_9_calibration(args.seed)
+    print("recomputed ECE:", eces, "| json ood_mean_ece:", round(d["ood_mean_ece"], 3))
     print("paper figs:", sorted(f for f in os.listdir(PAPER) if f.endswith(".pdf")))
 
 
