@@ -120,6 +120,24 @@ def fig_6_ood_strata(d):
     save(fig, "fig_6_ood_strata", outdir=PAPER)
 
 
+def fig_7_multiseed(seeds=(0, 1, 42)):
+    """Motif-OOD mean AUROC per genomic seed, HetMoE vs DNABERT-6 (3 seeds)."""
+    H, D = [], []
+    for s in seeds:
+        dd = json.load(open(f"results/hetmoe/seed{s}{MODE_SUFFIX}/hetmoe_eval.json"))
+        H.append(dd["ood_mean"]["HetMoE"]); D.append(dd["ood_mean"]["DNABERT"])
+    H, D = np.array(H), np.array(D)
+    fig, ax = plt.subplots(figsize=(COL1, 0.85 * COL1))
+    for xi, (lab, key, v) in enumerate([("HetMoE", "HetMoE", H), ("DNABERT-6", "DNABERT", D)]):
+        ax.plot([xi] * len(v), v, "o", color=color(key), ms=5, zorder=3)
+        ax.plot([xi - 0.2, xi + 0.2], [v.mean(), v.mean()], color="black", lw=1.2, zorder=4)
+        ax.text(xi, v.max() + 0.004, f"{v.mean():.3f}\n±{v.std(ddof=1):.3f}",
+                ha="center", va="bottom", fontsize=6)
+    ax.set_xticks([0, 1]); ax.set_xticklabels(["HetMoE", "DNABERT-6"])
+    ax.set_ylabel("motif-OOD AUROC"); ax.set_xlim(-0.5, 1.5); ax.set_ylim(0.5, 0.9)
+    save(fig, "fig_7_multiseed", outdir=PAPER)
+
+
 def fig_8_gate_routing(d):
     """Mean gate weight, expert (cols, config.expert_order) x representative OOD TF (rows)."""
     order = d["config"]["expert_order"]
@@ -149,6 +167,7 @@ def main():
     fig_4_ood_headline(d)
     fig_5_ood_forest(d)
     fig_6_ood_strata(d)
+    fig_7_multiseed()
     fig_8_gate_routing(d)
     print("paper figs:", sorted(f for f in os.listdir(PAPER) if f.endswith(".pdf")))
 
