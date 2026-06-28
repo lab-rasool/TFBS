@@ -31,7 +31,6 @@ MODEL_COLORS = {
     "DNABERT": OKABE_ITO["orange"], "DNABERT-6": OKABE_ITO["orange"], "DNABERT6": OKABE_ITO["orange"],
     "DeepSEA": OKABE_ITO["green"],
     "DanQ": OKABE_ITO["vermillion"],
-    "MoE": OKABE_ITO["sky"], "orig-MoE": OKABE_ITO["sky"], "moe": OKABE_ITO["sky"],
     "static_mean": OKABE_ITO["purple"], "static mean": OKABE_ITO["purple"],
     "best_single": OKABE_ITO["grey"], "best single": OKABE_ITO["grey"],
     "ConvNet": OKABE_ITO["sky"],
@@ -43,7 +42,7 @@ COL1 = 89 * MM
 COL1_5 = 120 * MM
 COL2 = 183 * MM
 
-FIG_DIR = os.path.join("results", "figures", "nature")
+FIG_DIR = os.path.join("results", "figures", "paper")
 
 
 def apply():
@@ -58,7 +57,7 @@ def apply():
         "font.family": "sans-serif",
         "font.sans-serif": ["Arial", "Helvetica", "Helvetica Neue", "DejaVu Sans"],
         "font.size": 7,
-        "axes.titlesize": 8, "axes.labelsize": 7,
+        "axes.titlesize": 7, "axes.labelsize": 7,
         "xtick.labelsize": 6, "ytick.labelsize": 6,
         "legend.fontsize": 6, "legend.frameon": False, "legend.handlelength": 1.4,
         "axes.linewidth": 0.6,
@@ -77,13 +76,19 @@ def color(model):
 
 
 def panel_label(ax, letter, x=-0.20, y=1.04):
-    ax.text(x, y, letter, transform=ax.transAxes, fontsize=9, fontweight="bold",
+    # Nature: panel labels 8-pt bold, upright, lowercase (a, b, c)
+    ax.text(x, y, letter, transform=ax.transAxes, fontsize=8, fontweight="bold",
             va="bottom", ha="right")
 
 
-def save(fig, name):
-    """Write <name>.pdf (vector) and <name>.png (600 dpi) into results/figures/nature/."""
-    os.makedirs(FIG_DIR, exist_ok=True)
-    fig.savefig(os.path.join(FIG_DIR, name + ".pdf"))
-    fig.savefig(os.path.join(FIG_DIR, name + ".png"), dpi=600)
+def save(fig, name, outdir=None):
+    """Write <name>.pdf (vector) and <name>.png (600 dpi).
+
+    Defaults to results/figures/paper/; pass ``outdir`` to redirect to a
+    different output directory.
+    """
+    outdir = outdir or FIG_DIR
+    os.makedirs(outdir, exist_ok=True)
+    fig.savefig(os.path.join(outdir, name + ".pdf"))
+    fig.savefig(os.path.join(outdir, name + ".png"), dpi=600)
     plt.close(fig)

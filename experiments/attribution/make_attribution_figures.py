@@ -53,7 +53,7 @@ def core_seq(x0):
 
 
 def motif_ranges(seq):
-    """1-based [min,max] index ranges of GATAA / TTATC occurrences for logo highlighting."""
+    """0-based [min,max] index ranges of GATAA / TTATC occurrences for logo highlighting."""
     rc = MOTIF.translate(str.maketrans("ACGT", "TGCA"))[::-1]
     out = []
     for m in (MOTIF, rc):
@@ -112,6 +112,7 @@ def fig_10_attribution(expert, moe, cdl, rng):
         axes[r][0].set_ylabel(lab, fontsize=6)
     axes[4][0].set_xlabel("nucleotide position", fontsize=7)
     axes[4][1].set_xlabel("nucleotide position", fontsize=7)
+    fig.tight_layout()
     fs.save(fig, "fig_10_attribution", outdir=PAPER)
 
 

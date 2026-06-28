@@ -49,7 +49,7 @@ def fig_3_indist_performance(d):
             ax.plot(i + dx, r[f"{m}_auc"], "o", color=color(m), ms=3.5, zorder=3,
                     label=PRETTY[m] if i == 0 else None)
     ax.axhline(0.5, ls=":", lw=0.6, color=OKABE_ITO["grey"], zorder=0)
-    ax.set_xticks(x); ax.set_xticklabels(TRAIN_TFS, fontsize=6); ax.set_ylim(0.4, 1.0)
+    ax.set_xticks(x); ax.set_xticklabels(TRAIN_TFS, fontsize=6); ax.set_ylim(0.0, 1.0)
     ax.set_ylabel("AUROC (mean, 95% CI)"); ax.legend(ncol=2, loc="lower right")
     save(fig, "fig_3_indist_performance", outdir=PAPER)
 
@@ -133,8 +133,9 @@ def fig_7_multiseed(seeds=(0, 1, 42)):
         ax.plot([xi - 0.2, xi + 0.2], [v.mean(), v.mean()], color="black", lw=1.2, zorder=4)
         ax.text(xi, v.max() + 0.004, f"{v.mean():.3f}\n±{v.std(ddof=1):.3f}",
                 ha="center", va="bottom", fontsize=6)
+    ax.axhline(0.5, ls=":", lw=0.6, color=OKABE_ITO["grey"], zorder=0)
     ax.set_xticks([0, 1]); ax.set_xticklabels(["HetMoE", "DNABERT-6"])
-    ax.set_ylabel("motif-OOD AUROC"); ax.set_xlim(-0.5, 1.5); ax.set_ylim(0.5, 0.9)
+    ax.set_ylabel("motif-OOD AUROC"); ax.set_xlim(-0.5, 1.5); ax.set_ylim(0.0, 1.0)
     save(fig, "fig_7_multiseed", outdir=PAPER)
 
 
