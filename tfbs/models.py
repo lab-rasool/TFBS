@@ -5,9 +5,11 @@ Holds the three live modules: ``ConvNet`` (the DeepBIND-style expert),
 the heterogeneous zoo), and ``MixtureOfExperts`` (the embedding-gated MoE).
 DeepSEA/DanQ trunk definitions live in :mod:`tfbs.experts`.
 
-NOTE (reproducibility): ``ConvNet.wRect`` (the conv bias) is a plain tensor, not
-an ``nn.Parameter`` -- it is re-randomised on every construction and is NOT saved
-in the checkpoint, so predictions depend on RNG/construction order. See docs/.
+NOTE (reproducibility): ``ConvNet.wRect`` (the conv bias) is a trained
+``nn.Parameter`` -- it is saved in the checkpoint and optimised like any other
+weight, so loading a checkpoint reproduces its predictions exactly. (It was
+previously a non-saved random tensor, which made the ConvNet expert and the
+gate built on it non-reproducible; see docs/reproduce.md.)
 """
 
 import torch
@@ -34,9 +36,12 @@ class ConvNet(nn.Module):
 
         self.wConv = nn.Parameter(torch.randn(self.nummotif, 4, self.motiflen))
         torch.nn.init.normal_(self.wConv, mean=0, std=self.sigmaConv)
-        self.wRect = torch.randn(self.nummotif).to(device)
-        torch.nn.init.normal_(self.wRect)
-        self.wRect = -self.wRect
+        # Conv bias: a trainable nn.Parameter so it is saved in the checkpoint and
+        # optimised (was a non-saved random tensor -> the pipeline was not
+        # reproducible). Init keeps the original negated-standard-normal convention.
+        w = torch.empty(self.nummotif)
+        torch.nn.init.normal_(w)
+        self.wRect = nn.Parameter(-w)
 
         if self.poolType == "maxavg":
             self.adjust_dimensions = nn.Linear(2 * self.nummotif, self.embedding_dim)

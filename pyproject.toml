@@ -23,7 +23,7 @@ dependencies = [
 
 [project.optional-dependencies]
 hpsearch = ["optuna>=4"]
-attribution = ["logomaker", "biopython"]
+attribution = ["logomaker", "biopython", "captum>=0.7"]
 
 # The importable library is the `tfbs` package; runnable CLIs live under
 # `experiments/` and are invoked as modules (e.g. `python -m experiments.train.evaluate`).

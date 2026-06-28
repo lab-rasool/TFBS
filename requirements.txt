@@ -2,8 +2,6 @@
 # Install the CUDA build of PyTorch for your system, e.g.:
 #   pip install torch==2.8.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 torch>=2.8
-torchvision
-torchaudio
 transformers>=4.57
 numpy>=2.2
 pandas>=2.3
@@ -16,3 +14,4 @@ optuna>=4
 # optional: attribution sequence logos / sequence parsing
 logomaker
 biopython
+captum>=0.7
