@@ -57,7 +57,7 @@ All final figures live in **`results/figures/paper/`** as `<name>.pdf` (vector) 
 | 1 | `fig_1_method_schematic` | Pipeline / visual abstract | existing `fig1_visual_abstract.pdf`, renamed |
 | 2 | `fig_2_shiftsmooth_schematic` | shift → grad → back → avg | existing `ShiftSmoothExample.pdf`, renamed |
 | 3 | `fig_3_indist_performance` | Per-TF in-dist AUROC (dot + 95% CI), HetMoE vs DNABERT-6, 7 train TFs | JSON `per_dataset["in_distribution::*"]` |
-| 4 | `fig_4_ood_headline` | **Motif**-OOD mean AUROC, 4 models (HetMoE / DNABERT-6 / best-single / static-avg) — shows gain is gating, not ensembling | per-model mean of JSON `ood_within_family` + `ood_cross_family` (NOT `ood_mean`, which includes non-motif) |
+| 4 | `fig_4_ood_headline` | **Motif**-OOD mean AUROC, 4 models (HetMoE / DNABERT-6 / best-single / static-avg) — shows gain is gating, not ensembling | JSON `ood_mean` (verified to be exactly the motif-strata mean over within+cross, excluding non-motif; HetMoE 0.827) |
 | 5 | `fig_5_ood_forest` | Per-factor ΔAUROC (HetMoE − DNABERT-6) ± 95% CI, 23 motif factors grouped by DBD family; CI-excludes-0 highlighted | JSON `paired_vs_dnabert` (filtered to 23 motif OOD) |
 | 6 | `fig_6_ood_strata` | OOD AUROC by stratum (within / cross / non-motif), HetMoE vs DNABERT-6, non-motif marked as seq-only ceiling | JSON `ood_within_family`, `ood_cross_family`, `ood_nonmotif` |
 | 7 | `fig_7_multiseed` | Motif-OOD mean AUROC per seed (HetMoE vs DNABERT-6), 3 genomic seeds | `results/hetmoe/seed{0,1,42}_genomic/hetmoe_eval.json` |
