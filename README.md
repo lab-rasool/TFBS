@@ -6,9 +6,14 @@ ConvNet + DeepSEA + DanQ + fine-tuned DNABERT-6) that improves **out-of-distribu
 generalization, and a "ShiftSmooth" attribution method. This code backs the paper (LaTeX in
 `paper/`).
 
-**Headline result.** Feeding the unchanged embedding-gating MoE a *heterogeneous* expert pool beats
-DNABERT-6 on OOD: **0.777 ± 0.003 vs 0.736 ± 0.009** over 5 seeds. See
-[`docs/RESULTS_HETMOE.md`](docs/RESULTS_HETMOE.md).
+**Headline result.** On the genomic, fair-negative protocol over the seven training factors, feeding
+the unchanged embedding-gating MoE a *heterogeneous* expert pool (ConvNet + DeepSEA + DanQ) beats a
+fine-tuned DNABERT-6 baseline on the motif-bearing OOD strata: **0.821 ± 0.005 vs 0.799 ± 0.008**
+over seeds 0/1/42 (`results/hetmoe/genomic_multiseed_summary.txt`).
+
+**Data & weights on the Hub.** The ENCODE ChIP-seq data are hosted at
+[`Lab-Rasool/ENCODE-TFBS` (dataset)](https://huggingface.co/datasets/Lab-Rasool/ENCODE-TFBS) and the
+trained checkpoints at [`Lab-Rasool/ENCODE-TFBS` (model)](https://huggingface.co/Lab-Rasool/ENCODE-TFBS).
 
 ## Repository layout
 
@@ -30,10 +35,9 @@ experiments/     runnable CLIs (thin wrappers; run as `python -m experiments.<gr
   ablation/      ablation.py
   attribution/   shiftsmooth_eval.py + notebooks
   analysis/      stats.py, make_paper_figures.py, data_quality.py
-data/            ChIP-seq inputs (see data/README.md for conventions)
-models/          checkpoints — gitignored, kept local (data + models to be HuggingFace-hosted)
-results/         summaries + figures tracked; cache/ gitignored (see docs/results_layout.md)
-docs/            results report, reviewer responses, reproduce.md, results_layout.md
+data/            ChIP-seq inputs (see data/README.md for conventions; hosted on the Hub, below)
+models/          checkpoints — gitignored, hosted on the Hub (Lab-Rasool/ENCODE-TFBS model repo)
+results/         summaries + figures tracked; cache/ gitignored
 ```
 
 ## Installation
@@ -76,17 +80,24 @@ python -m experiments.attribution.shiftsmooth_eval --n_seqs 60
 python -m experiments.analysis.make_paper_figures
 ```
 
-On the cluster, submit the chained SLURM jobs in `slurm/` (see `docs/reproduce.md`).
+## Data & model checkpoints
 
-## Results & reproducibility
+Both the data and the trained weights live on the Hugging Face Hub under the **`Lab-Rasool/ENCODE-TFBS`**
+namespace:
 
-The HetMoE pipeline (and the underlying ConvNet-expert training) is reproducible from the saved checkpoints/cache.
-**Model checkpoints (`models/`) are not committed** — they're kept local for now and will be hosted on
-HuggingFace (together with the data); regenerate them via training, or request them. See
-[`docs/reproduce.md`](docs/reproduce.md) for exact commands **and reproducibility caveats**: the conv
-bias `wRect` is a saved `nn.Parameter` and expert order is pinned to `tfbs.constants.TRAIN_TFS`, so
-re-running `evaluate.py` is byte-identical on a given machine (minor device-numerics differences may
-remain across machines). Attribution figures are reproduced by
+- **Dataset** — [`datasets/Lab-Rasool/ENCODE-TFBS`](https://huggingface.co/datasets/Lab-Rasool/ENCODE-TFBS):
+  the ENCODE ChIP-seq `*_{AC,B}.seq.gz` files. Place them under `data/`.
+- **Models** — [`Lab-Rasool/ENCODE-TFBS`](https://huggingface.co/Lab-Rasool/ENCODE-TFBS): the canonical
+  checkpoints — 7 ConvNet experts (`experts/`), their hyperparameters (`hyperparams/`), the homogeneous
+  ConvNet MoE (`moe/`), and the genomic heterogeneous zoo probes (`zoo/seed{0,1,42}/`, DeepSEA + DanQ).
+  Download into `models/` (which is gitignored), e.g. `hf download Lab-Rasool/ENCODE-TFBS --local-dir models`.
+
+## Reproducibility
+
+The HetMoE pipeline (and the underlying ConvNet-expert training) is reproducible from the checkpoints
+above. The conv bias `wRect` is a saved `nn.Parameter` and expert order is pinned to
+`tfbs.constants.TRAIN_TFS`, so re-running `evaluate.py` is byte-identical on a given machine (minor
+device-numerics differences may remain across machines). Attribution figures are reproduced by
 `experiments/attribution/shiftsmooth_eval.py` and `experiments/attribution/make_attribution_figures.py`.
 
 ## License
