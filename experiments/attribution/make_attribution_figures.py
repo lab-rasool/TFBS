@@ -1,4 +1,4 @@
-"""Fig 10 — single attribution grid for the paper's Explainability section.
+"""Fig 9 — single attribution grid for the paper's Explainability section.
 
 Builds a 5×2 grid (rows: input sequence / VG-expert / ShiftSmooth-expert / VG-MoE /
 ShiftSmooth-MoE; cols: GATA3 positive | random negative) as a nucleotide-letter sequence
@@ -64,20 +64,21 @@ def motif_ranges(seq):
     return out[:2]  # logomaker highlight supports up to two ranges here
 
 
-def draw_logo(ax, data4, seq, highlight=True, show_yaxis=True):
-    """Render a (4, L) per-base array as a letter logo INTO an existing axis."""
+def draw_logo(ax, data4, seq, highlight=True):
+    """Render a (4, L) per-base array as a letter logo INTO an existing axis (no y-axis;
+    rows are identified by Nature-style panel letters instead, see the caption)."""
     df = pd.DataFrame({nuc: data4[i] for i, nuc in enumerate(BASES)})
     logo = logomaker.Logo(df, ax=ax, color_scheme="classic")
     logo.style_spines(visible=False)
-    logo.style_spines(spines=["bottom"] + (["left"] if show_yaxis else []), visible=True)
-    if not show_yaxis:
-        ax.set_yticks([])
+    logo.style_spines(spines=["bottom"], visible=True)
+    ax.set_yticks([])
     ax.set_xticks([])
     if highlight:
+        # k=0 is GATAA (green), k=1 its reverse complement TTATC (blue), matching the text.
         for k, (a, b) in enumerate(motif_ranges(seq)):
             logo.highlight_position_range(
-                pmin=a, pmax=b, color="lightcyan" if k == 0 else "honeydew",
-                edgecolor="blue" if k == 0 else "green", padding=0.05)
+                pmin=a, pmax=b, color="honeydew" if k == 0 else "lightcyan",
+                edgecolor="green" if k == 0 else "blue", padding=0.05)
 
 
 def random_seq(rng, n=101):
@@ -92,24 +93,42 @@ def fig_9_attribution(expert, moe, cdl, rng):
     pos = positives_for("GATA3", 60)
     both = next((s for s in pos if "GATAA" in s[CORE0:CORE1] or "TTATC" in s[CORE0:CORE1]), pos[0])
     columns = [("both", both, True), ("random", random_seq(rng), False)]
-    row_labels = ["input sequence", "VG (expert)", "ShiftSmooth (expert)",
-                  "VG (MoE)", "ShiftSmooth (MoE)"]
-    fig, axes = plt.subplots(5, 2, figsize=(COL2, 1.05 * COL2))
+    panel_letters = ["A", "B", "C", "D", "E"]  # one per row; meanings given in the caption
+
+    # The full 101 bp core renders as ~100 unreadable letters, so zoom every row to a
+    # window that covers the positive sequence's highlighted GATA sites (+flank) and crops
+    # the long uninformative flanks. The same width is used for both columns so the letter
+    # size matches across the figure.
+    FLANK = 6
+    both_cs = core_seq(torch.from_numpy(cdl.seqtopad(both)).float().unsqueeze(0).to(device))
+    mr = motif_ranges(both_cs)
+    lo = max(0, min(a for a, _ in mr) - FLANK) if mr else 0
+    hi = min(len(both_cs), max(b for _, b in mr) + 1 + FLANK) if mr else len(both_cs)
+    WIN = hi - lo
+
+    fig, axes = plt.subplots(5, 2, figsize=(COL2, 0.66 * COL2),
+                             gridspec_kw={"height_ratios": [0.3, 1, 1, 1, 1]})
     for c, (tag, seq, hl) in enumerate(columns):
         x0 = torch.from_numpy(cdl.seqtopad(seq)).float().unsqueeze(0).to(device)
         cs = core_seq(x0)
-        oh = x0[0, :, CORE0:CORE1].cpu().numpy()
+        ranges = motif_ranges(cs) if hl else []
+        center = ((min(a for a, _ in ranges) + max(b for _, b in ranges)) // 2
+                  if ranges else len(cs) // 2)
+        w0 = max(0, min(center - WIN // 2, len(cs) - WIN))
+        w1 = w0 + WIN
+        cw = cs[w0:w1]
+        oh = x0[0, :, CORE0:CORE1].cpu().numpy()[:, w0:w1]
         data = [oh,
-                vanilla_gradxinput(expert, x0)[:, CORE0:CORE1],
-                shiftsmooth_gradxinput(expert, x0)[:, CORE0:CORE1],
-                vanilla_gradxinput(moe, x0)[:, CORE0:CORE1],
-                shiftsmooth_gradxinput(moe, x0)[:, CORE0:CORE1]]
+                vanilla_gradxinput(expert, x0)[:, CORE0:CORE1][:, w0:w1],
+                shiftsmooth_gradxinput(expert, x0)[:, CORE0:CORE1][:, w0:w1],
+                vanilla_gradxinput(moe, x0)[:, CORE0:CORE1][:, w0:w1],
+                shiftsmooth_gradxinput(moe, x0)[:, CORE0:CORE1][:, w0:w1]]
         for r in range(5):
-            draw_logo(axes[r][c], data[r], cs, highlight=hl, show_yaxis=(r > 0))
+            draw_logo(axes[r][c], data[r], cw, highlight=hl)
         axes[0][c].set_title("GATA3 (positive)" if tag == "both" else "random (negative)",
                              fontsize=8)
-    for r, lab in enumerate(row_labels):
-        axes[r][0].set_ylabel(lab, fontsize=6)
+    for r, letter in enumerate(panel_letters):
+        fs.panel_label(axes[r][0], letter, x=-0.03, y=1.0)
     axes[4][0].set_xlabel("nucleotide position", fontsize=7)
     axes[4][1].set_xlabel("nucleotide position", fontsize=7)
     fig.tight_layout()

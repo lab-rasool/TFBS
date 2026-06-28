@@ -1,0 +1,7 @@
+GENOMIC (fair-negative) multiseed, seeds [42, 0, 1]
+  HetMoE motif-OOD = 0.8215 +/- 0.0048
+  DNABERT motif-OOD = 0.7992 +/- 0.0080
+  margin = +0.0223
+  seed 42: HetMoE 0.8270 | DNABERT 0.7998 | within 0.8455 cross 0.7746
+  seed 0: HetMoE 0.8183 | DNABERT 0.8068 | within 0.8342 cross 0.7733
+  seed 1: HetMoE 0.8192 | DNABERT 0.7908 | within 0.8362 cross 0.7708

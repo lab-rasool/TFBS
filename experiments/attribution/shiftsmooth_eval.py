@@ -31,11 +31,11 @@ import torch
 from scipy.stats import spearmanr
 
 from tfbs.data import ChipDataLoader
-from tfbs.models import ConvNet
+from tfbs.models import ConvNet, MixtureOfExperts
 from tfbs.utils import set_seed
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-TRAIN_TFS = ["ARID3A", "FOXM1", "GATA3"]
+from tfbs.constants import TRAIN_TFS  # canonical expert order (the 7 training factors)
 CORE0, CORE1 = 23, 124  # 101 bp core inside the 4x147 padded one-hot (motiflen-1=23 pad)
 OUT_DIR = "./results/attribution"
 
@@ -44,6 +44,33 @@ def load_expert(tf):
     cfg = torch.load(f"./models/hyperparams/{tf}.pth")
     m = ConvNet(cfg).to(device)
     m.load_state_dict(torch.load(f"./models/experts/{tf}.pth", map_location=device))
+    m.eval()
+    return m
+
+
+class MoEGate(torch.nn.Module):
+    """HetMoE's sequence-grounded gate: the convolutional experts (run live, hence
+    differentiable to the one-hot input) feed their embeddings to the trained gate.
+    The DNABERT-6 experts in the full pool tokenise the sequence into k-mers and are
+    not nucleotide-differentiable, so attribution is computed through the convolutional
+    experts; this is the part of HetMoE that grounds a prediction in individual bases."""
+
+    def __init__(self, experts, moe):
+        super().__init__()
+        self.experts = torch.nn.ModuleList(experts)
+        self.moe = moe
+
+    def forward(self, x, training=False, return_embedding=False):
+        emb = torch.cat([e(x, training=False, return_embedding=True) for e in self.experts], dim=1)
+        return self.moe(emb)
+
+
+def load_moe():
+    experts = [load_expert(tf) for tf in TRAIN_TFS]  # canonical order
+    moe = MixtureOfExperts(num_experts=len(experts), embedding_size=32).to(device)
+    moe.load_state_dict(torch.load("./models/moe/moe_model.pth", map_location=device))
+    moe.eval()
+    m = MoEGate(experts, moe).to(device)
     m.eval()
     return m
 
@@ -119,15 +146,20 @@ def method_maps(model, x0, args, rng):
     }
 
 
-def evaluate_tf(tf, seqs, args):
-    model = load_expert(tf)
+def evaluate_tf(tf, seqs, args, model=None, model_name=None):
+    """Attribution faithfulness/stability for one ``model`` on ``tf``'s sequences.
+    Defaults to that TF's individual ConvNet expert; pass ``model`` (e.g. the MoE) to
+    evaluate it on the same sequences. ``model_name`` labels the output rows."""
+    if model is None:
+        model = load_expert(tf)
+        model_name = f"expert_{tf}"
     cdl = ChipDataLoader("")  # only used for seqtopad (no file is opened)
     rng = np.random.default_rng(args.seed)
     rows = []
     methods = ["vanilla", "smoothgrad", "shiftsmooth"]
     variants = [(m, corr) for m in methods for corr in (False, True)]
-    agg = {f"{m}{'_corr' if c else ''}": {"faith": [], "stab": []} for m, c in variants}
-    agg["gradxinp"] = {"faith": [], "stab": []}
+    agg = {f"{m}{'_corr' if c else ''}": {"faith": [], "stab": [], "loc": []} for m, c in variants}
+    agg["gradxinp"] = {"faith": [], "stab": [], "loc": []}
 
     for s in seqs[: args.n_seqs]:
         x0 = torch.from_numpy(cdl.seqtopad(s)).float().unsqueeze(0).to(device)
@@ -141,6 +173,7 @@ def evaluate_tf(tf, seqs, args):
         gi = reduce_core(maps["vanilla"], x0)
         agg["gradxinp"]["faith"].append(_safe_spear(gi, ism_imp))
         agg["gradxinp"]["stab"].append(_safe_spear(gi, reduce_core(maps_p["vanilla"], x0p)))
+        agg["gradxinp"]["loc"].append(loc_at_k(gi, ism_imp))
 
         for m, c in variants:
             name = f"{m}{'_corr' if c else ''}"
@@ -150,11 +183,13 @@ def evaluate_tf(tf, seqs, args):
             imp_p = reduce_core(gp, x0p)
             agg[name]["faith"].append(_safe_spear(imp, ism_imp))
             agg[name]["stab"].append(_safe_spear(imp, imp_p))
+            agg[name]["loc"].append(loc_at_k(imp, ism_imp))
 
     for name, d in agg.items():
-        rows.append({"tf": tf, "method": name,
+        rows.append({"model": model_name, "tf": tf, "method": name,
                      "faithfulness_to_ISM": float(np.nanmean(d["faith"])),
                      "stability": float(np.nanmean(d["stab"])),
+                     "localization_at10": float(np.nanmean(d["loc"])),
                      "n_seqs": len(d["faith"])})
     return rows
 
@@ -163,6 +198,18 @@ def _safe_spear(a, b):
     if np.std(a) < 1e-9 or np.std(b) < 1e-9:
         return np.nan
     return spearmanr(a, b).correlation
+
+
+def loc_at_k(imp, ism_imp, k=10):
+    """Motif-localization: precision@k of the method's top-k most-important positions
+    against ISM's top-k (ISM = ground truth for *where* the important bases are).
+    Directly tests whether translation-averaging blurs localization -- a method can be
+    stable yet localize poorly. Position-overlap, not value correlation."""
+    if not (np.isfinite(imp).any() and np.isfinite(ism_imp).any()):
+        return np.nan
+    a = set(np.argsort(-np.abs(np.nan_to_num(imp)))[:k].tolist())
+    b = set(np.argsort(-np.abs(np.nan_to_num(ism_imp)))[:k].tolist())
+    return float(len(a & b) / k)
 
 
 def positives_for(tf, n):
@@ -184,22 +231,30 @@ def main():
     set_seed(args.seed)
     os.makedirs(OUT_DIR, exist_ok=True)
 
+    moe = load_moe()  # HetMoE's differentiable (convolutional-expert) gate
     all_rows = []
     for tf in TRAIN_TFS:
         seqs = positives_for(tf, args.n_seqs)
         print(f"[attrib] {tf}: {len(seqs)} positive sequences", flush=True)
-        all_rows += evaluate_tf(tf, seqs, args)
+        all_rows += evaluate_tf(tf, seqs, args)                              # the TF's expert
+        all_rows += evaluate_tf(tf, seqs, args, model=moe, model_name="MoE")  # the MoE gate
 
     df = pd.DataFrame(all_rows)
     df.to_csv(os.path.join(OUT_DIR, "attribution_per_tf.csv"), index=False)
-    summ = df.groupby("method")[["faithfulness_to_ISM", "stability"]].mean().reset_index()
-    summ = summ.sort_values("faithfulness_to_ISM", ascending=False)
+    df["model_class"] = df["model"].apply(lambda m: "MoE" if m == "MoE" else "expert")
+    summ = (df.groupby(["model_class", "method"])
+              [["faithfulness_to_ISM", "stability", "localization_at10"]]
+              .mean().reset_index()
+              .sort_values(["model_class", "faithfulness_to_ISM"], ascending=[True, False]))
     summ.to_csv(os.path.join(OUT_DIR, "attribution_summary.csv"), index=False)
-    print("\n=== Attribution method comparison (mean over 3 TFs) ===")
+    print(f"\n=== Attribution comparison: MoE vs individual experts (mean over {len(TRAIN_TFS)} TFs) ===")
     print(summ.round(4).to_string(index=False))
     print(f"\nWrote {OUT_DIR}/attribution_summary.csv")
-    print("Interpretation: ShiftSmooth should match/beat SmoothGrad on faithfulness_to_ISM "
-          "and win on stability; the _corr (simplex-corrected) variants should improve both.")
+    print("Honest interpretation: ISM is the faithfulness gold standard. Stability alone is NOT "
+          "sufficient (a method can be stable but unfaithful/de-localized). The defensible claim is "
+          "whatever the three axes jointly support: faithfulness_to_ISM (does it agree with ISM), "
+          "localization_at10 (does it find ISM's important positions, i.e. NOT blurred by averaging), "
+          "and stability. The _corr (Majdandzic simplex) variants should improve faithfulness/localization.")
 
 
 if __name__ == "__main__":

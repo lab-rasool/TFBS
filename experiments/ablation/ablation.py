@@ -35,6 +35,7 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
 from tfbs.data import ChipDataLoader, chipseq_dataset
+from tfbs.metrics import paired_bootstrap
 from tfbs.models import ConvNet, MixtureOfExperts
 from tfbs.utils import EarlyStopping, get_tf_name, load_files_from_folder, set_seed
 
@@ -174,13 +175,8 @@ def rigorous_eval(experts, moe, test_files, ood_files, n_boot=1000, base_seed=42
         x = x.to(device); y = y.numpy().ravel().astype(int)
         with torch.no_grad():
             preds = torch.sigmoid(moe(_emb(experts, x, training=False))).cpu().numpy().ravel()
-        rng = np.random.default_rng(base_seed + di)
-        aucs = []
-        for _ in range(n_boot):
-            idx = rng.integers(0, len(y), len(y))
-            if y[idx].min() != y[idx].max():
-                aucs.append(roc_auc_score(y[idx], preds[idx]))
-        out[(kind, get_tf_name(path))] = float(np.mean(aucs))
+        boot = paired_bootstrap({"moe": preds}, y, base_seed + di, n_boot)["moe"]
+        out[(kind, get_tf_name(path))] = float(boot.mean())
     return out
 
 

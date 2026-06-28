@@ -63,6 +63,7 @@ def _read_pos_neg(path):
 
 def diagnose():
     """Compare dinuc-shuffle negatives (train scheme) vs real _B negatives (test scheme)."""
+    np.random.seed(42)  # deterministic dinucleotide-shuffle negatives -> reproducible detector AUC
     cdl = ChipDataLoader("")
     rows = []
     for f in sorted(glob.glob("./data/test/*_B.seq.gz") + glob.glob("./data/ood/*_B.seq.gz")):
@@ -85,6 +86,16 @@ def diagnose():
           f"(1.0 = shuffle & real negatives are trivially separable -> train/test mismatch).")
     print("Implication: experts trained to reject dinuc-shuffle negatives face a DIFFERENT "
           "negative distribution at test; GC-matched genomic negatives close this gap.")
+    import csv
+    os.makedirs("results/analysis", exist_ok=True)
+    out = "results/analysis/negative_set_diagnostic.csv"
+    with open(out, "w", newline="") as fh:
+        w = csv.writer(fh)
+        w.writerow(["tf", "GC_real", "GC_shuf", "dGC", "detector_AUC"])
+        for tf, gr, gs, dg, da in rows:
+            w.writerow([tf, f"{gr:.4f}", f"{gs:.4f}", f"{dg:+.4f}", f"{da:.4f}"])
+        w.writerow(["MEAN", "", "", "", f"{mean_auc:.4f}"])
+    print(f"wrote {out}")
     return rows
 
 

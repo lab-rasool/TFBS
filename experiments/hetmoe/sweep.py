@@ -14,16 +14,18 @@ from tfbs.evaluate_hetmoe import full_evaluation, run_config
 from tfbs.experts import load_zoo_cache, subset_zoo
 
 # (backbones subset, grouped, l2norm, entropy, temperature, tag)
+# Tags are count-agnostic: the actual #experts = (#backbones in the subset) x
+# (#training TFs). With the 7-TF family-aware set, "full" = 4x7 = 28 experts.
 CONFIGS = [
-    dict(backbones=None, group=False, l2norm=True,  entropy=1e-3, temp=1.0, tag="full12"),
-    dict(backbones=None, group=False, l2norm=False, entropy=0.0,  temp=1.0, tag="full12_noknobs"),
-    dict(backbones=None, group=False, l2norm=True,  entropy=1e-3, temp=2.0, tag="full12_tau2"),
-    dict(backbones=None, group=False, l2norm=True,  entropy=1e-2, temp=1.0, tag="full12_ent1e-2"),
-    dict(backbones=None, group=True,  l2norm=True,  entropy=1e-3, temp=1.0, tag="grouped4"),
-    dict(backbones=["ConvNet", "DNABERT6"], group=False, l2norm=True, entropy=1e-3, temp=1.0, tag="convnet_dnabert6_6"),
-    dict(backbones=["ConvNet", "DeepSEA", "DanQ"], group=False, l2norm=True, entropy=1e-3, temp=1.0, tag="cnn_only_9"),
-    dict(backbones=["DNABERT6"], group=False, l2norm=True, entropy=0.0, temp=1.0, tag="dnabert6_only_3"),
-    dict(backbones=["ConvNet"], group=False, l2norm=True, entropy=0.0, temp=1.0, tag="convnet_only_3"),
+    dict(backbones=None, group=False, l2norm=True,  entropy=1e-3, temp=1.0, tag="full"),
+    dict(backbones=None, group=False, l2norm=False, entropy=0.0,  temp=1.0, tag="full_noknobs"),
+    dict(backbones=None, group=False, l2norm=True,  entropy=1e-3, temp=2.0, tag="full_tau2"),
+    dict(backbones=None, group=False, l2norm=True,  entropy=1e-2, temp=1.0, tag="full_ent1e-2"),
+    dict(backbones=None, group=True,  l2norm=True,  entropy=1e-3, temp=1.0, tag="grouped_by_backbone"),
+    dict(backbones=["ConvNet", "DNABERT6"], group=False, l2norm=True, entropy=1e-3, temp=1.0, tag="convnet_dnabert6"),
+    dict(backbones=["ConvNet", "DeepSEA", "DanQ"], group=False, l2norm=True, entropy=1e-3, temp=1.0, tag="cnn_only"),
+    dict(backbones=["DNABERT6"], group=False, l2norm=True, entropy=0.0, temp=1.0, tag="dnabert6_only"),
+    dict(backbones=["ConvNet"], group=False, l2norm=True, entropy=0.0, temp=1.0, tag="convnet_only"),
 ]
 
 
@@ -39,8 +41,9 @@ def main():
     ap.add_argument("--n_boot", type=int, default=1000)
     args = ap.parse_args()
 
-    grid_out = f"./results/moe_grid/seed{args.seed}"
-    hetmoe_out = f"./results/hetmoe/seed{args.seed}"
+    from tfbs.constants import MODE_SUFFIX
+    grid_out = f"./results/moe_grid/seed{args.seed}{MODE_SUFFIX}"
+    hetmoe_out = f"./results/hetmoe/seed{args.seed}{MODE_SUFFIX}"
     base = load_zoo_cache(args.seed)
     results = []
     for c in CONFIGS:

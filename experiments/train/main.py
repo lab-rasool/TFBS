@@ -11,7 +11,8 @@ import warnings
 
 from tfbs.data import ChipDataLoader, chipseq_dataset
 from tfbs.models import ConvNet, MixtureOfExperts
-from tfbs.utils import EarlyStopping, get_tf_name, load_files_from_folder, set_seed
+from tfbs.utils import EarlyStopping, get_tf_name, load_files_from_folder, order_files_by, set_seed
+from tfbs.constants import TRAIN_TFS, train_dir_and_shuffle, TRAIN_NEG_MODE
 
 warnings.filterwarnings("ignore")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -268,7 +269,13 @@ def main():
     )
 
     args = parser.parse_args()
-    train_folder = args.train_folder
+    # Negative-mode switch: in genomic mode, default to the GC-matched-negative dir and
+    # load with shuffle=False (real negatives already in the file). An explicit
+    # --train_folder still wins.
+    _mode_dir, _train_shuffle = train_dir_and_shuffle()
+    train_folder = args.train_folder if args.train_folder != "./data/train" else _mode_dir
+    print(f"[main] negative mode = {TRAIN_NEG_MODE}; train_folder = {train_folder}; "
+          f"load_data shuffle = {_train_shuffle}")
     save_path = args.save_path
     batch_size = args.batch_size
     seed = args.seed
@@ -279,7 +286,9 @@ def main():
     os.makedirs(f"{save_path}/experts", exist_ok=True)
     os.makedirs(f"{save_path}/moe", exist_ok=True)
 
-    chiqseq_train_files = load_files_from_folder(train_folder)
+    # Canonical TRAIN_TFS order (not raw os.listdir) so the expert/MoE-embedding
+    # concatenation order is machine-independent and matches evaluation.
+    chiqseq_train_files = order_files_by(load_files_from_folder(train_folder), TRAIN_TFS)
 
     # -------------------------------------------------------------------------------------
     # Find Best Individual Expert Model Hyperparameters
@@ -295,7 +304,7 @@ def main():
             console.print(f"[{tf_name}] reusing saved hyperparameters: {best_hyperparameters}")
             best_hyperparameters_list.append(best_hyperparameters)
             continue
-        alldataset = ChipDataLoader(train_file).load_data()
+        alldataset = ChipDataLoader(train_file).load_data(shuffle=_train_shuffle)
         train_data, valid_data = train_test_split(alldataset, test_size=0.2, stratify=[label for _, label in alldataset], random_state=seed)
         train_loader = DataLoader(
             dataset=chipseq_dataset(train_data),
@@ -330,7 +339,7 @@ def main():
     for i, (train_file, best_hyperparameters) in enumerate(
         zip(chiqseq_train_files, best_hyperparameters_list)
     ):
-        alldataset = ChipDataLoader(train_file).load_data()
+        alldataset = ChipDataLoader(train_file).load_data(shuffle=_train_shuffle)
         train_data, valid_data = train_test_split(alldataset, test_size=0.2, random_state=seed)
         train_loader = DataLoader(
             dataset=chipseq_dataset(train_data),
@@ -373,7 +382,7 @@ def main():
     combined_data = []
     for path in chiqseq_train_files:
         data_loader = ChipDataLoader(path)
-        data = data_loader.load_data()
+        data = data_loader.load_data(shuffle=_train_shuffle)
         combined_data.extend(data)
 
     # Split data into training and validation sets

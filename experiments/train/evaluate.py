@@ -22,7 +22,8 @@ from torch.utils.data import DataLoader
 from tfbs.data import ChipDataLoader, chipseq_dataset
 from tfbs.metrics import paired_bootstrap
 from tfbs.models import ConvNet, MixtureOfExperts
-from tfbs.utils import get_tf_name, load_files_from_folder, set_seed
+from tfbs.utils import get_tf_name, load_files_from_folder, order_files_by, set_seed
+from tfbs.constants import TRAIN_TFS
 
 warnings.filterwarnings("ignore")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -259,10 +260,11 @@ def main():
     args = parser.parse_args()
 
     set_seed(args.base_seed)
-    test_files = load_files_from_folder(args.test_folder)
+    # Canonical TRAIN_TFS order (not raw os.listdir) so the expert/MoE concatenation
+    # order matches how the MoE was trained, machine-independently.
+    test_files = order_files_by(load_files_from_folder(args.test_folder), TRAIN_TFS)
     ood_files = load_files_from_folder(args.ood_folder)
 
-    # Load models (expert order follows os.listdir of the test folder)
     expert_tfs = [get_tf_name(f) for f in test_files]
     configs = [torch.load(f"{args.save_path}/hyperparams/{tf}.pth", map_location=device)
                for tf in expert_tfs]
