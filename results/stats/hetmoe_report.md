@@ -10,7 +10,6 @@
 | Best-single expert | 0.7447 | -- |
 | DeepSEA (baseline) | 0.6918 | -- |
 | DanQ (baseline) | 0.6881 | -- |
-| Original MoE (paper) | 0.6829 | -- |
 
 Stratified OOD HetMoE: learnable (CTCF,STAT3) = **0.8364**, indirect = 0.7546.  OOD calibration: ECE = 0.154, Brier = 0.216.
 

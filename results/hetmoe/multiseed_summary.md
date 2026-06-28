@@ -1,5 +1,10 @@
 # Multi-seed robustness (HetMoE vs DNABERT-6, OOD)
 
+> **SUPERSEDED — historical.** This is the earlier **3-training-factor, 6-OOD, dinucleotide-shuffle**
+> run (5 seeds). The paper's headline is the **7-factor, family-stratified, GC-matched genomic-negative**
+> study: see `results/hetmoe/genomic_multiseed_summary.txt` (HetMoE 0.821±0.005 vs DNABERT-6
+> 0.799±0.008 over seeds 0/1/42) and `docs/RESULTS_HETMOE.md`. Kept only as a record of the dinuc arm.
+
 Seeds: [0, 1, 2, 3, 42]  (n=5)
 
 | metric | mean | std | min | max |

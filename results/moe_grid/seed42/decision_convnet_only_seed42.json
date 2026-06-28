@@ -1,0 +1,753 @@
+{
+  "tag": "convnet_only",
+  "seed": 42,
+  "num_experts": 7,
+  "config": {
+    "l2norm": true,
+    "entropy_reg": 0.0,
+    "gate_temperature": 1.0,
+    "embedding_dim": 32
+  },
+  "expert_order": [
+    "ConvNet::ARID3A",
+    "ConvNet::FOXM1",
+    "ConvNet::GATA3",
+    "ConvNet::JUND",
+    "ConvNet::MAX",
+    "ConvNet::GABPA",
+    "ConvNet::SP1"
+  ],
+  "gate_val_auc": 0.9104760507710621,
+  "mean_gate_entropy": 1.6308745675616794,
+  "ood_mean_hetmoe": 0.7861533913043478,
+  "ood_mean_oracle": 0.7862354782608697,
+  "ood_mean_static": 0.7034356521739131,
+  "ood_within_family_hetmoe": 0.7986802352941176,
+  "ood_cross_family_hetmoe": 0.7506606666666666,
+  "ood_nonmotif_hetmoe": 0.7164346666666667,
+  "ood_within_family_static": 0.7080277647058824,
+  "ood_cross_family_static": 0.6904246666666666,
+  "indist_mean_hetmoe": 0.8027197142857142,
+  "per_dataset": {
+    "in_distribution::ARID3A": {
+      "data_type": "in_distribution",
+      "tf": "ARID3A",
+      "hetmoe_auc": 0.715276,
+      "static_mean_auc": 0.625048,
+      "oracle_auc": 0.733416,
+      "best_expert": "ConvNet::ARID3A",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.7334,
+        "ConvNet::FOXM1": 0.5878,
+        "ConvNet::GATA3": 0.5732,
+        "ConvNet::JUND": 0.599,
+        "ConvNet::MAX": 0.5925,
+        "ConvNet::GABPA": 0.5691,
+        "ConvNet::SP1": 0.5705
+      },
+      "hetmoe_brier": 0.2295884579267182,
+      "hetmoe_ece": 0.11343206413090229,
+      "gate_entropy": 1.4918612241744995
+    },
+    "in_distribution::FOXM1": {
+      "data_type": "in_distribution",
+      "tf": "FOXM1",
+      "hetmoe_auc": 0.741784,
+      "static_mean_auc": 0.664288,
+      "oracle_auc": 0.711284,
+      "best_expert": "ConvNet::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5755,
+        "ConvNet::FOXM1": 0.7113,
+        "ConvNet::GATA3": 0.5762,
+        "ConvNet::JUND": 0.7034,
+        "ConvNet::MAX": 0.6491,
+        "ConvNet::GABPA": 0.6485,
+        "ConvNet::SP1": 0.5669
+      },
+      "hetmoe_brier": 0.22715254789637196,
+      "hetmoe_ece": 0.12908148184418677,
+      "gate_entropy": 1.649093747138977
+    },
+    "in_distribution::GATA3": {
+      "data_type": "in_distribution",
+      "tf": "GATA3",
+      "hetmoe_auc": 0.7466680000000001,
+      "static_mean_auc": 0.669636,
+      "oracle_auc": 0.755304,
+      "best_expert": "ConvNet::GATA3",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6306,
+        "ConvNet::FOXM1": 0.6152,
+        "ConvNet::GATA3": 0.7553,
+        "ConvNet::JUND": 0.6212,
+        "ConvNet::MAX": 0.6205,
+        "ConvNet::GABPA": 0.6706,
+        "ConvNet::SP1": 0.5754
+      },
+      "hetmoe_brier": 0.22915605346614812,
+      "hetmoe_ece": 0.13699963044375182,
+      "gate_entropy": 1.4921518564224243
+    },
+    "in_distribution::JUND": {
+      "data_type": "in_distribution",
+      "tf": "JUND",
+      "hetmoe_auc": 0.93336,
+      "static_mean_auc": 0.7123760000000001,
+      "oracle_auc": 0.962912,
+      "best_expert": "ConvNet::JUND",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.596,
+        "ConvNet::FOXM1": 0.6592,
+        "ConvNet::GATA3": 0.6082,
+        "ConvNet::JUND": 0.9629,
+        "ConvNet::MAX": 0.6556,
+        "ConvNet::GABPA": 0.6517,
+        "ConvNet::SP1": 0.604
+      },
+      "hetmoe_brier": 0.17595840355232414,
+      "hetmoe_ece": 0.21299462502449754,
+      "gate_entropy": 1.620362639427185
+    },
+    "in_distribution::MAX": {
+      "data_type": "in_distribution",
+      "tf": "MAX",
+      "hetmoe_auc": 0.8910899999999999,
+      "static_mean_auc": 0.782568,
+      "oracle_auc": 0.8978280000000001,
+      "best_expert": "ConvNet::MAX",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5822,
+        "ConvNet::FOXM1": 0.6864,
+        "ConvNet::GATA3": 0.5578,
+        "ConvNet::JUND": 0.6732,
+        "ConvNet::MAX": 0.8978,
+        "ConvNet::GABPA": 0.7065,
+        "ConvNet::SP1": 0.6516
+      },
+      "hetmoe_brier": 0.13376694692927288,
+      "hetmoe_ece": 0.03828447675704955,
+      "gate_entropy": 1.6719154119491577
+    },
+    "in_distribution::GABPA": {
+      "data_type": "in_distribution",
+      "tf": "GABPA",
+      "hetmoe_auc": 0.938928,
+      "static_mean_auc": 0.860828,
+      "oracle_auc": 0.96428,
+      "best_expert": "ConvNet::GABPA",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6082,
+        "ConvNet::FOXM1": 0.7995,
+        "ConvNet::GATA3": 0.5224,
+        "ConvNet::JUND": 0.7464,
+        "ConvNet::MAX": 0.776,
+        "ConvNet::GABPA": 0.9643,
+        "ConvNet::SP1": 0.6837
+      },
+      "hetmoe_brier": 0.09963670490702745,
+      "hetmoe_ece": 0.06526570902764797,
+      "gate_entropy": 1.5582929849624634
+    },
+    "in_distribution::SP1": {
+      "data_type": "in_distribution",
+      "tf": "SP1",
+      "hetmoe_auc": 0.651932,
+      "static_mean_auc": 0.618844,
+      "oracle_auc": 0.665264,
+      "best_expert": "ConvNet::SP1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5599,
+        "ConvNet::FOXM1": 0.5242,
+        "ConvNet::GATA3": 0.5636,
+        "ConvNet::JUND": 0.5887,
+        "ConvNet::MAX": 0.6044,
+        "ConvNet::GABPA": 0.6027,
+        "ConvNet::SP1": 0.6653
+      },
+      "hetmoe_brier": 0.2770317103369157,
+      "hetmoe_ece": 0.20078616004437208,
+      "gate_entropy": 1.6637927293777466
+    },
+    "out_of_distribution::JUN": {
+      "data_type": "out_of_distribution",
+      "tf": "JUN",
+      "hetmoe_auc": 0.91752,
+      "static_mean_auc": 0.7108079999999999,
+      "oracle_auc": 0.946552,
+      "best_expert": "ConvNet::JUND",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5892,
+        "ConvNet::FOXM1": 0.6561,
+        "ConvNet::GATA3": 0.5739,
+        "ConvNet::JUND": 0.9466,
+        "ConvNet::MAX": 0.6607,
+        "ConvNet::GABPA": 0.6327,
+        "ConvNet::SP1": 0.6347
+      },
+      "hetmoe_brier": 0.1715290293564144,
+      "hetmoe_ece": 0.1936692692264915,
+      "gate_entropy": 1.623944878578186
+    },
+    "out_of_distribution::FOSL1": {
+      "data_type": "out_of_distribution",
+      "tf": "FOSL1",
+      "hetmoe_auc": 0.9225360000000001,
+      "static_mean_auc": 0.693352,
+      "oracle_auc": 0.937976,
+      "best_expert": "ConvNet::JUND",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6132,
+        "ConvNet::FOXM1": 0.6207,
+        "ConvNet::GATA3": 0.592,
+        "ConvNet::JUND": 0.938,
+        "ConvNet::MAX": 0.6353,
+        "ConvNet::GABPA": 0.6427,
+        "ConvNet::SP1": 0.6159
+      },
+      "hetmoe_brier": 0.19128122977332446,
+      "hetmoe_ece": 0.22025300358980895,
+      "gate_entropy": 1.6261792182922363
+    },
+    "out_of_distribution::ATF3": {
+      "data_type": "out_of_distribution",
+      "tf": "ATF3",
+      "hetmoe_auc": 0.751736,
+      "static_mean_auc": 0.65976,
+      "oracle_auc": 0.68706,
+      "best_expert": "ConvNet::JUND",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5977,
+        "ConvNet::FOXM1": 0.613,
+        "ConvNet::GATA3": 0.5439,
+        "ConvNet::JUND": 0.6871,
+        "ConvNet::MAX": 0.6579,
+        "ConvNet::GABPA": 0.6114,
+        "ConvNet::SP1": 0.5936
+      },
+      "hetmoe_brier": 0.21534387951927106,
+      "hetmoe_ece": 0.1275664636492729,
+      "gate_entropy": 1.6355400085449219
+    },
+    "out_of_distribution::MYC": {
+      "data_type": "out_of_distribution",
+      "tf": "MYC",
+      "hetmoe_auc": 0.8892560000000002,
+      "static_mean_auc": 0.7894159999999999,
+      "oracle_auc": 0.8768960000000001,
+      "best_expert": "ConvNet::MAX",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6228,
+        "ConvNet::FOXM1": 0.691,
+        "ConvNet::GATA3": 0.5527,
+        "ConvNet::JUND": 0.6865,
+        "ConvNet::MAX": 0.8769,
+        "ConvNet::GABPA": 0.7297,
+        "ConvNet::SP1": 0.6686
+      },
+      "hetmoe_brier": 0.1355239177332811,
+      "hetmoe_ece": 0.04427958983927964,
+      "gate_entropy": 1.6585959196090698
+    },
+    "out_of_distribution::MXI1": {
+      "data_type": "out_of_distribution",
+      "tf": "MXI1",
+      "hetmoe_auc": 0.819888,
+      "static_mean_auc": 0.741468,
+      "oracle_auc": 0.777534,
+      "best_expert": "ConvNet::MAX",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5989,
+        "ConvNet::FOXM1": 0.6632,
+        "ConvNet::GATA3": 0.558,
+        "ConvNet::JUND": 0.6783,
+        "ConvNet::MAX": 0.7775,
+        "ConvNet::GABPA": 0.7012,
+        "ConvNet::SP1": 0.6603
+      },
+      "hetmoe_brier": 0.17590824105498398,
+      "hetmoe_ece": 0.05403742802143096,
+      "gate_entropy": 1.6625373363494873
+    },
+    "out_of_distribution::USF1": {
+      "data_type": "out_of_distribution",
+      "tf": "USF1",
+      "hetmoe_auc": 0.8672759999999999,
+      "static_mean_auc": 0.750896,
+      "oracle_auc": 0.8930699999999999,
+      "best_expert": "ConvNet::MAX",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6201,
+        "ConvNet::FOXM1": 0.6524,
+        "ConvNet::GATA3": 0.5526,
+        "ConvNet::JUND": 0.6743,
+        "ConvNet::MAX": 0.8931,
+        "ConvNet::GABPA": 0.6458,
+        "ConvNet::SP1": 0.6974
+      },
+      "hetmoe_brier": 0.15182469803054424,
+      "hetmoe_ece": 0.0722951720058918,
+      "gate_entropy": 1.6627758741378784
+    },
+    "out_of_distribution::ELF1": {
+      "data_type": "out_of_distribution",
+      "tf": "ELF1",
+      "hetmoe_auc": 0.94468,
+      "static_mean_auc": 0.85902,
+      "oracle_auc": 0.964208,
+      "best_expert": "ConvNet::GABPA",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6193,
+        "ConvNet::FOXM1": 0.786,
+        "ConvNet::GATA3": 0.5579,
+        "ConvNet::JUND": 0.7339,
+        "ConvNet::MAX": 0.7869,
+        "ConvNet::GABPA": 0.9642,
+        "ConvNet::SP1": 0.6854
+      },
+      "hetmoe_brier": 0.09892171429402209,
+      "hetmoe_ece": 0.06373943770676851,
+      "gate_entropy": 1.577829122543335
+    },
+    "out_of_distribution::ETS1": {
+      "data_type": "out_of_distribution",
+      "tf": "ETS1",
+      "hetmoe_auc": 0.774564,
+      "static_mean_auc": 0.715676,
+      "oracle_auc": 0.7582360000000001,
+      "best_expert": "ConvNet::GABPA",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6026,
+        "ConvNet::FOXM1": 0.6633,
+        "ConvNet::GATA3": 0.5288,
+        "ConvNet::JUND": 0.6163,
+        "ConvNet::MAX": 0.7315,
+        "ConvNet::GABPA": 0.7582,
+        "ConvNet::SP1": 0.633
+      },
+      "hetmoe_brier": 0.20360166799597226,
+      "hetmoe_ece": 0.09628650104254483,
+      "gate_entropy": 1.6501399278640747
+    },
+    "out_of_distribution::SPI1": {
+      "data_type": "out_of_distribution",
+      "tf": "SPI1",
+      "hetmoe_auc": 0.809944,
+      "static_mean_auc": 0.7129,
+      "oracle_auc": 0.864216,
+      "best_expert": "ConvNet::GABPA",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5979,
+        "ConvNet::FOXM1": 0.7296,
+        "ConvNet::GATA3": 0.577,
+        "ConvNet::JUND": 0.6931,
+        "ConvNet::MAX": 0.7156,
+        "ConvNet::GABPA": 0.8642,
+        "ConvNet::SP1": 0.6094
+      },
+      "hetmoe_brier": 0.22270080137739479,
+      "hetmoe_ece": 0.19620695453509687,
+      "gate_entropy": 1.7119712829589844
+    },
+    "out_of_distribution::SP2": {
+      "data_type": "out_of_distribution",
+      "tf": "SP2",
+      "hetmoe_auc": 0.710296,
+      "static_mean_auc": 0.6568919999999999,
+      "oracle_auc": 0.676352,
+      "best_expert": "ConvNet::SP1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6002,
+        "ConvNet::FOXM1": 0.5451,
+        "ConvNet::GATA3": 0.534,
+        "ConvNet::JUND": 0.6119,
+        "ConvNet::MAX": 0.6199,
+        "ConvNet::GABPA": 0.6318,
+        "ConvNet::SP1": 0.6764
+      },
+      "hetmoe_brier": 0.24610135041171521,
+      "hetmoe_ece": 0.16159537564590576,
+      "gate_entropy": 1.6441106796264648
+    },
+    "out_of_distribution::YY1": {
+      "data_type": "out_of_distribution",
+      "tf": "YY1",
+      "hetmoe_auc": 0.75226,
+      "static_mean_auc": 0.739848,
+      "oracle_auc": 0.708556,
+      "best_expert": "ConvNet::JUND",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5774,
+        "ConvNet::FOXM1": 0.689,
+        "ConvNet::GATA3": 0.5838,
+        "ConvNet::JUND": 0.7086,
+        "ConvNet::MAX": 0.7078,
+        "ConvNet::GABPA": 0.6964,
+        "ConvNet::SP1": 0.6676
+      },
+      "hetmoe_brier": 0.21427888762279018,
+      "hetmoe_ece": 0.10935712979733944,
+      "gate_entropy": 1.6532186269760132
+    },
+    "out_of_distribution::ZNF143": {
+      "data_type": "out_of_distribution",
+      "tf": "ZNF143",
+      "hetmoe_auc": 0.7475679999999999,
+      "static_mean_auc": 0.7127,
+      "oracle_auc": 0.750352,
+      "best_expert": "ConvNet::GABPA",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5758,
+        "ConvNet::FOXM1": 0.6809,
+        "ConvNet::GATA3": 0.494,
+        "ConvNet::JUND": 0.6113,
+        "ConvNet::MAX": 0.7198,
+        "ConvNet::GABPA": 0.7504,
+        "ConvNet::SP1": 0.6651
+      },
+      "hetmoe_brier": 0.22621398326406938,
+      "hetmoe_ece": 0.13851271405071022,
+      "gate_entropy": 1.6508867740631104
+    },
+    "out_of_distribution::REST": {
+      "data_type": "out_of_distribution",
+      "tf": "REST",
+      "hetmoe_auc": 0.6517080000000001,
+      "static_mean_auc": 0.6315000000000002,
+      "oracle_auc": 0.655856,
+      "best_expert": "ConvNet::MAX",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5814,
+        "ConvNet::FOXM1": 0.6106,
+        "ConvNet::GATA3": 0.5684,
+        "ConvNet::JUND": 0.5893,
+        "ConvNet::MAX": 0.6559,
+        "ConvNet::GABPA": 0.57,
+        "ConvNet::SP1": 0.5749
+      },
+      "hetmoe_brier": 0.2621036684829393,
+      "hetmoe_ece": 0.16042916087061165,
+      "gate_entropy": 1.6960654258728027
+    },
+    "out_of_distribution::GATA1": {
+      "data_type": "out_of_distribution",
+      "tf": "GATA1",
+      "hetmoe_auc": 0.7662599999999999,
+      "static_mean_auc": 0.700628,
+      "oracle_auc": 0.791572,
+      "best_expert": "ConvNet::GATA3",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5982,
+        "ConvNet::FOXM1": 0.6168,
+        "ConvNet::GATA3": 0.7916,
+        "ConvNet::JUND": 0.6281,
+        "ConvNet::MAX": 0.6501,
+        "ConvNet::GABPA": 0.696,
+        "ConvNet::SP1": 0.6165
+      },
+      "hetmoe_brier": 0.22696488983049773,
+      "hetmoe_ece": 0.15667876341938974,
+      "gate_entropy": 1.6732211112976074
+    },
+    "out_of_distribution::GATA2": {
+      "data_type": "out_of_distribution",
+      "tf": "GATA2",
+      "hetmoe_auc": 0.779752,
+      "static_mean_auc": 0.687512,
+      "oracle_auc": 0.750272,
+      "best_expert": "ConvNet::GATA3",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5981,
+        "ConvNet::FOXM1": 0.6312,
+        "ConvNet::GATA3": 0.7503,
+        "ConvNet::JUND": 0.6453,
+        "ConvNet::MAX": 0.6532,
+        "ConvNet::GABPA": 0.7125,
+        "ConvNet::SP1": 0.6013
+      },
+      "hetmoe_brier": 0.22992575856129885,
+      "hetmoe_ece": 0.1709790460765362,
+      "gate_entropy": 1.5714894533157349
+    },
+    "out_of_distribution::FOXA1": {
+      "data_type": "out_of_distribution",
+      "tf": "FOXA1",
+      "hetmoe_auc": 0.741612,
+      "static_mean_auc": 0.6447120000000001,
+      "oracle_auc": 0.8245079999999999,
+      "best_expert": "ConvNet::ARID3A",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.8245,
+        "ConvNet::FOXM1": 0.5681,
+        "ConvNet::GATA3": 0.5513,
+        "ConvNet::JUND": 0.6131,
+        "ConvNet::MAX": 0.6067,
+        "ConvNet::GABPA": 0.6143,
+        "ConvNet::SP1": 0.5719
+      },
+      "hetmoe_brier": 0.22511155590095477,
+      "hetmoe_ece": 0.12677168294787408,
+      "gate_entropy": 1.526234745979309
+    },
+    "out_of_distribution::FOXA2": {
+      "data_type": "out_of_distribution",
+      "tf": "FOXA2",
+      "hetmoe_auc": 0.7307079999999999,
+      "static_mean_auc": 0.629384,
+      "oracle_auc": 0.820248,
+      "best_expert": "ConvNet::ARID3A",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.8202,
+        "ConvNet::FOXM1": 0.5457,
+        "ConvNet::GATA3": 0.5677,
+        "ConvNet::JUND": 0.5907,
+        "ConvNet::MAX": 0.5977,
+        "ConvNet::GABPA": 0.5755,
+        "ConvNet::SP1": 0.5836
+      },
+      "hetmoe_brier": 0.23219261704361024,
+      "hetmoe_ece": 0.13798061014711854,
+      "gate_entropy": 1.5145988464355469
+    },
+    "out_of_distribution::CTCF": {
+      "data_type": "out_of_distribution",
+      "tf": "CTCF",
+      "hetmoe_auc": 0.8565240000000001,
+      "static_mean_auc": 0.73996,
+      "oracle_auc": 0.862384,
+      "best_expert": "ConvNet::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.7886,
+        "ConvNet::FOXM1": 0.8624,
+        "ConvNet::GATA3": 0.5572,
+        "ConvNet::JUND": 0.6461,
+        "ConvNet::MAX": 0.7016,
+        "ConvNet::GABPA": 0.6386,
+        "ConvNet::SP1": 0.6221
+      },
+      "hetmoe_brier": 0.1777122711428725,
+      "hetmoe_ece": 0.14742022266983987,
+      "gate_entropy": 1.6935878992080688
+    },
+    "out_of_distribution::STAT3": {
+      "data_type": "out_of_distribution",
+      "tf": "STAT3",
+      "hetmoe_auc": 0.7998159999999999,
+      "static_mean_auc": 0.688296,
+      "oracle_auc": 0.781992,
+      "best_expert": "ConvNet::JUND",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6023,
+        "ConvNet::FOXM1": 0.6867,
+        "ConvNet::GATA3": 0.5571,
+        "ConvNet::JUND": 0.782,
+        "ConvNet::MAX": 0.6727,
+        "ConvNet::GABPA": 0.6756,
+        "ConvNet::SP1": 0.584
+      },
+      "hetmoe_brier": 0.20604521480284085,
+      "hetmoe_ece": 0.12645776320993898,
+      "gate_entropy": 1.5920747518539429
+    },
+    "out_of_distribution::NRF1": {
+      "data_type": "out_of_distribution",
+      "tf": "NRF1",
+      "hetmoe_auc": 0.725344,
+      "static_mean_auc": 0.713948,
+      "oracle_auc": 0.69136,
+      "best_expert": "ConvNet::MAX",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5921,
+        "ConvNet::FOXM1": 0.6649,
+        "ConvNet::GATA3": 0.5127,
+        "ConvNet::JUND": 0.6544,
+        "ConvNet::MAX": 0.6914,
+        "ConvNet::GABPA": 0.6529,
+        "ConvNet::SP1": 0.67
+      },
+      "hetmoe_brier": 0.23214687855556965,
+      "hetmoe_ece": 0.14187689163535833,
+      "gate_entropy": 1.6488760709762573
+    },
+    "out_of_distribution::HNF4A": {
+      "data_type": "out_of_distribution",
+      "tf": "HNF4A",
+      "hetmoe_auc": 0.658928,
+      "static_mean_auc": 0.5973,
+      "oracle_auc": 0.707968,
+      "best_expert": "ConvNet::ARID3A",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.708,
+        "ConvNet::FOXM1": 0.5368,
+        "ConvNet::GATA3": 0.5445,
+        "ConvNet::JUND": 0.565,
+        "ConvNet::MAX": 0.5848,
+        "ConvNet::GABPA": 0.5796,
+        "ConvNet::SP1": 0.5273
+      },
+      "hetmoe_brier": 0.26704438921202567,
+      "hetmoe_ece": 0.1684511312432587,
+      "gate_entropy": 1.641526460647583
+    },
+    "out_of_distribution::TCF7L2": {
+      "data_type": "out_of_distribution",
+      "tf": "TCF7L2",
+      "hetmoe_auc": 0.72288,
+      "static_mean_auc": 0.657552,
+      "oracle_auc": 0.64842,
+      "best_expert": "ConvNet::ARID3A",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6484,
+        "ConvNet::FOXM1": 0.6093,
+        "ConvNet::GATA3": 0.575,
+        "ConvNet::JUND": 0.6436,
+        "ConvNet::MAX": 0.6359,
+        "ConvNet::GABPA": 0.6288,
+        "ConvNet::SP1": 0.6065
+      },
+      "hetmoe_brier": 0.23267235533718877,
+      "hetmoe_ece": 0.14432973851263525,
+      "gate_entropy": 1.6690438985824585
+    },
+    "out_of_distribution::ZBTB33": {
+      "data_type": "out_of_distribution",
+      "tf": "ZBTB33",
+      "hetmoe_auc": 0.740472,
+      "static_mean_auc": 0.7454919999999999,
+      "oracle_auc": 0.707828,
+      "best_expert": "ConvNet::MAX",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.6201,
+        "ConvNet::FOXM1": 0.7035,
+        "ConvNet::GATA3": 0.6023,
+        "ConvNet::JUND": 0.6718,
+        "ConvNet::MAX": 0.7078,
+        "ConvNet::GABPA": 0.686,
+        "ConvNet::SP1": 0.6922
+      },
+      "hetmoe_brier": 0.23342711933223187,
+      "hetmoe_ece": 0.15309141487628222,
+      "gate_entropy": 1.6513131856918335
+    },
+    "out_of_distribution::POLR2A": {
+      "data_type": "out_of_distribution",
+      "tf": "POLR2A",
+      "hetmoe_auc": 0.7086920000000001,
+      "static_mean_auc": 0.694008,
+      "oracle_auc": 0.679744,
+      "best_expert": "ConvNet::GABPA",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5857,
+        "ConvNet::FOXM1": 0.6534,
+        "ConvNet::GATA3": 0.5998,
+        "ConvNet::JUND": 0.6331,
+        "ConvNet::MAX": 0.6521,
+        "ConvNet::GABPA": 0.6797,
+        "ConvNet::SP1": 0.6379
+      },
+      "hetmoe_brier": 0.24454293946025932,
+      "hetmoe_ece": 0.1513264784216881,
+      "gate_entropy": 1.652725100517273
+    },
+    "out_of_distribution::EP300": {
+      "data_type": "out_of_distribution",
+      "tf": "EP300",
+      "hetmoe_auc": 0.7898400000000001,
+      "static_mean_auc": 0.699756,
+      "oracle_auc": 0.751028,
+      "best_expert": "ConvNet::GATA3",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.601,
+        "ConvNet::FOXM1": 0.6481,
+        "ConvNet::GATA3": 0.751,
+        "ConvNet::JUND": 0.6668,
+        "ConvNet::MAX": 0.6542,
+        "ConvNet::GABPA": 0.722,
+        "ConvNet::SP1": 0.5899
+      },
+      "hetmoe_brier": 0.21598703351213708,
+      "hetmoe_ece": 0.154594085380435,
+      "gate_entropy": 1.6163259744644165
+    },
+    "out_of_distribution::EZH2": {
+      "data_type": "out_of_distribution",
+      "tf": "EZH2",
+      "hetmoe_auc": 0.6604600000000002,
+      "static_mean_auc": 0.633332,
+      "oracle_auc": 0.643348,
+      "best_expert": "ConvNet::FOXM1",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5852,
+        "ConvNet::FOXM1": 0.6433,
+        "ConvNet::GATA3": 0.5405,
+        "ConvNet::JUND": 0.6006,
+        "ConvNet::MAX": 0.6352,
+        "ConvNet::GABPA": 0.6361,
+        "ConvNet::SP1": 0.5742
+      },
+      "hetmoe_brier": 0.2634298876900708,
+      "hetmoe_ece": 0.17386463636904956,
+      "gate_entropy": 1.6718943119049072
+    },
+    "out_of_distribution::TAF1": {
+      "data_type": "out_of_distribution",
+      "tf": "TAF1",
+      "hetmoe_auc": 0.761072,
+      "static_mean_auc": 0.7376159999999999,
+      "oracle_auc": 0.758316,
+      "best_expert": "ConvNet::GABPA",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5917,
+        "ConvNet::FOXM1": 0.6904,
+        "ConvNet::GATA3": 0.5952,
+        "ConvNet::JUND": 0.6781,
+        "ConvNet::MAX": 0.6896,
+        "ConvNet::GABPA": 0.7583,
+        "ConvNet::SP1": 0.6362
+      },
+      "hetmoe_brier": 0.20905115318137635,
+      "hetmoe_ece": 0.0945983792692423,
+      "gate_entropy": 1.6475141048431396
+    },
+    "out_of_distribution::RBBP5": {
+      "data_type": "out_of_distribution",
+      "tf": "RBBP5",
+      "hetmoe_auc": 0.7052799999999999,
+      "static_mean_auc": 0.672328,
+      "oracle_auc": 0.690784,
+      "best_expert": "ConvNet::MAX",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5435,
+        "ConvNet::FOXM1": 0.6199,
+        "ConvNet::GATA3": 0.5473,
+        "ConvNet::JUND": 0.6232,
+        "ConvNet::MAX": 0.6908,
+        "ConvNet::GABPA": 0.6766,
+        "ConvNet::SP1": 0.602
+      },
+      "hetmoe_brier": 0.24581008308715352,
+      "hetmoe_ece": 0.14700276332348583,
+      "gate_entropy": 1.6511974334716797
+    },
+    "out_of_distribution::SAP30": {
+      "data_type": "out_of_distribution",
+      "tf": "SAP30",
+      "hetmoe_auc": 0.673264,
+      "static_mean_auc": 0.6525839999999999,
+      "oracle_auc": 0.669336,
+      "best_expert": "ConvNet::MAX",
+      "per_expert_auc": {
+        "ConvNet::ARID3A": 0.5721,
+        "ConvNet::FOXM1": 0.6232,
+        "ConvNet::GATA3": 0.5545,
+        "ConvNet::JUND": 0.6084,
+        "ConvNet::MAX": 0.6693,
+        "ConvNet::GABPA": 0.6092,
+        "ConvNet::SP1": 0.5922
+      },
+      "hetmoe_brier": 0.2613691751861481,
+      "hetmoe_ece": 0.17646039268374442,
+      "gate_entropy": 1.6885954141616821
+    }
+  }
+}
