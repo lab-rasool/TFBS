@@ -39,7 +39,7 @@ docs/            results report, reviewer responses, reproduce.md, results_layou
 ## Installation
 
 ```sh
-git clone https://github.com/Aakash-Tripathi/TFBS.git
+git clone https://github.com/lab-rasool/TFBS.git
 cd TFBS
 python -m venv venv && source venv/bin/activate
 # install the CUDA build of torch for your system (see requirements.txt), then:
