@@ -33,10 +33,7 @@ experiments/     runnable CLIs (thin wrappers; run as `python -m experiments.<gr
 data/            ChIP-seq inputs (see data/README.md for conventions)
 models/          checkpoints — gitignored, kept local (data + models to be HuggingFace-hosted)
 results/         summaries + figures tracked; cache/ gitignored (see docs/results_layout.md)
-slurm/           cluster job scripts
 docs/            results report, reviewer responses, reproduce.md, results_layout.md
-paper/           LaTeX (not under git)
-archive/         deprecated legacy/ + old/ material (gitignored)
 ```
 
 ## Installation
@@ -49,7 +46,7 @@ python -m venv venv && source venv/bin/activate
 pip install -e .          # installs the `tfbs` package + dependencies
 ```
 
-Tested on Python 3.13, PyTorch 2.8 / CUDA 12.8 (original experiments on an RTX 3090; HetMoE on
+Tested on Python 3.13, PyTorch 2.8 / CUDA 12.8 (expert training on an RTX 3090; HetMoE on
 cluster H100/H200). `optuna` is only needed for the per-expert hyperparameter search (skip it with
 `--use_saved_hyperparams`).
 
@@ -62,12 +59,12 @@ export HF_HOME=$PWD/.hf_cache HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
 ```
 
 ```sh
-# Original MoE: train (reusing saved hyperparameters) then evaluate
+# Train the ConvNet experts (reusing saved hyperparameters) + canonical evaluation harness
 python -m experiments.train.main --seed 42 --use_saved_hyperparams
 python -m experiments.train.evaluate --protocol rigorous
 python -m experiments.analysis.stats
 
-# Heterogeneous MoE (the OOD-winning extension)
+# HetMoE — the proposed heterogeneous Mixture-of-Experts
 python -m experiments.hetmoe.cache_embeddings --seed 42 --backbones ConvNet,DeepSEA,DanQ,DNABERT6   # Phase A (GPU)
 python -m experiments.hetmoe.sweep --seed 42                                                        # Phase B+C
 python -m experiments.hetmoe.aggregate_seeds
@@ -83,13 +80,14 @@ On the cluster, submit the chained SLURM jobs in `slurm/` (see `docs/reproduce.m
 
 ## Results & reproducibility
 
-The original MoE and the HetMoE pipelines are reproducible from the saved checkpoints/cache.
+The HetMoE pipeline (and the underlying ConvNet-expert training) is reproducible from the saved checkpoints/cache.
 **Model checkpoints (`models/`) are not committed** — they're kept local for now and will be hosted on
 HuggingFace (together with the data); regenerate them via training, or request them. See
-[`docs/reproduce.md`](docs/reproduce.md) for exact commands **and important reproducibility caveats**
-(the conv bias `wRect` is not persisted, and expert order derives from `os.listdir`, so headline
-numbers are deterministic per machine but not bit-portable across machines). Attribution results are
-reproduced by `experiments/attribution/attributes_motif.ipynb` and `attributes_ood.ipynb`.
+[`docs/reproduce.md`](docs/reproduce.md) for exact commands **and reproducibility caveats**: the conv
+bias `wRect` is a saved `nn.Parameter` and expert order is pinned to `tfbs.constants.TRAIN_TFS`, so
+re-running `evaluate.py` is byte-identical on a given machine (minor device-numerics differences may
+remain across machines). Attribution figures are reproduced by
+`experiments/attribution/shiftsmooth_eval.py` and `experiments/attribution/make_attribution_figures.py`.
 
 ## License
 
