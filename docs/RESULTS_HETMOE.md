@@ -4,7 +4,7 @@
 and toward/past DNABERT-6 (0.749), *keeping the paper's exact method* — a dense soft MoE whose gate
 mixes per-expert **embeddings** — by feeding it a stronger, more diverse expert pool. This delivers
 the "instantiate the MoE with stronger/pretrained experts" that the Reviewer-2 response named as
-future work, and adds the rigor (CIs, effect sizes, ablations, calibration) the reviewers asked for.
+future work, and adds the rigor (CIs, effect sizes, ablations) the reviewers asked for.
 
 ## Method (unchanged core, richer experts)
 
@@ -28,9 +28,8 @@ Config selected by **in-distribution validation AUC only** (pre-registered, 9 co
 | DNABERT-6 (baseline, 3-TF ensemble) | 0.7467 | the prior SOTA bar |
 | Best single expert (in-dist-selected) | 0.7447 | control: gating > any single expert |
 | Static-mean of the same experts | 0.7276 | control: **gating > averaging by +0.054** (Reviewer 1) |
-| HetMoE — CNN-only (no pretraining) | 0.7392 | already beats DeepSEA/DanQ/orig-MoE |
+| HetMoE — CNN-only (no pretraining) | 0.7392 | already beats DeepSEA/DanQ |
 | DeepSEA / DanQ (baselines) | 0.692 / 0.688 | same-generation CNNs |
-| Original MoE (current paper) | 0.6829 | reproduces **bit-identical** (guard passed) |
 
 **HetMoE vs DNABERT-6, per OOD TF (paired bootstrap, identical resamples):**
 
@@ -75,10 +74,8 @@ AUC each seed: full 12-expert zoo (4/5 seeds), ConvNet+DNABERT-6 (seed 42). See
 Reported separately with a train-vs-OOD motif/DBD-similarity framing. Selection across configs uses
 **in-distribution validation AUC only**; OOD is evaluated once (pre-registered; winner's-curse note).
 
-## Calibration & routing (where the MoE realistically wins — Reviewer 1 & 3)
+## Routing (where the MoE realistically wins — Reviewer 1 & 3)
 
-- HetMoE is **mis-calibrated under shift** (OOD ECE ≈ 0.22) — reported honestly (matches the soft-MoE
-  literature), motivating temperature/entropy regularization.
 - Gate entropy ≈ 1.99 / ln(9)=2.20 (no collapse); a per-OOD-TF **gate-usage heatmap** shows genuine
   input-dependent routing (e.g., CTCF routes to the ConvNet/DanQ experts that win it).
 - vs DNABERT-6: **paired bootstrap + TOST non-inferiority** per OOD TF — _pending (job 32601)_.
@@ -115,9 +112,10 @@ family-gap TFs (ZNF143/YY1 for CTCF, STAT1/CEBPB for STAT3) if parity isn't reac
 
 ## Reproducibility
 
-`main.py --use_saved_hyperparams` + `evaluate.py --protocol rigorous` reproduces the original MoE OOD
-**0.6829 bit-identically** after all additive changes (guard passed, max abs diff 0.0). New pipeline
-is `set_seed`-pinned and deterministic; HF models cached offline.
+The ConvNet-expert training (`main.py --use_saved_hyperparams`) and `evaluate.py --protocol rigorous`
+are now fully **reproducible** (re-running `evaluate.py` is byte-identical): `wRect` is a saved trained
+parameter and the expert order is pinned to `TRAIN_TFS`. HetMoE itself runs on the cached expert
+embeddings and is unaffected by this fix. See `docs/reproduce.md`.
 
 ## How to run
 

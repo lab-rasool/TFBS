@@ -4,7 +4,7 @@ Builds a 5×2 grid (rows: input sequence / VG-expert / ShiftSmooth-expert / VG-M
 ShiftSmooth-MoE; cols: GATA3 positive | random negative) as a nucleotide-letter sequence
 logo using Captum's InputXGradient and the ShiftSmooth average-over-translations gradient.
 
-Output: results/figures/paper/fig_10_attribution.{pdf,png}
+Output: results/figures/paper/fig_9_attribution.{pdf,png}
 
 Run from the repo root:
   TFBS_TRAIN_NEG=genomic python -m experiments.attribution.make_attribution_figures
@@ -84,9 +84,9 @@ def random_seq(rng, n=101):
     return "".join(rng.choice(list(BASES), size=n))
 
 
-def fig_10_attribution(expert, moe, cdl, rng):
+def fig_9_attribution(expert, moe, cdl, rng):
     """One figure: rows = {input seq, VG-expert, SS-expert, VG-MoE, SS-MoE};
-    cols = {GATA3 positive | random negative}. -> results/figures/paper/fig_10_attribution."""
+    cols = {GATA3 positive | random negative}. -> results/figures/paper/fig_9_attribution."""
     PAPER = os.path.join("results", "figures", "paper")
 
     pos = positives_for("GATA3", 60)
@@ -113,7 +113,7 @@ def fig_10_attribution(expert, moe, cdl, rng):
     axes[4][0].set_xlabel("nucleotide position", fontsize=7)
     axes[4][1].set_xlabel("nucleotide position", fontsize=7)
     fig.tight_layout()
-    fs.save(fig, "fig_10_attribution", outdir=PAPER)
+    fs.save(fig, "fig_9_attribution", outdir=PAPER)
 
 
 def main():
@@ -122,8 +122,8 @@ def main():
     rng = np.random.default_rng(42)
     expert = load_expert("GATA3")
     moe = load_moe()
-    fig_10_attribution(expert, moe, cdl, rng)
-    print("[attrib-fig] wrote results/figures/paper/fig_10_attribution.{pdf,png}")
+    fig_9_attribution(expert, moe, cdl, rng)
+    print("[attrib-fig] wrote results/figures/paper/fig_9_attribution.{pdf,png}")
 
 
 if __name__ == "__main__":
