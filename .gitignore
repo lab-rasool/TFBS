@@ -6,6 +6,7 @@ __pycache__/
 .hf_cache/
 CLAUDE.md
 .claude
+/data
 
 # ---- Paper (tracked separately, not under git) ----
 /paper
@@ -28,3 +29,6 @@ CLAUDE.md
 /slurm/logs
 # temporary refactor-verification outputs
 /results/_verify
+# stray eval diagnostic ROC plots (canonical paper figures live in results/figures/paper/)
+/results/roc_curves_*.png
+data/genome/
