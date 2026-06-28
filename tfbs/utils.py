@@ -54,3 +54,12 @@ def load_files_from_folder(folder_path):
 
 def get_tf_name(file_path):
     return os.path.basename(file_path).split("_")[0]
+
+
+def order_files_by(files, tf_order):
+    """Order ``files`` by ``tf_order`` (canonical TF order) so the expert / MoE
+    embedding concatenation is machine-independent instead of raw ``os.listdir``
+    order. Files whose TF is not in ``tf_order`` keep their order, appended last.
+    """
+    rank = {tf: i for i, tf in enumerate(tf_order)}
+    return sorted(files, key=lambda f: rank.get(get_tf_name(f), len(rank)))

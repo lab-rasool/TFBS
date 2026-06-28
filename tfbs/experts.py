@@ -11,8 +11,8 @@ import torch.nn.functional as F
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
-from tfbs.constants import TRAIN_TFS, OOD_TFS
-from tfbs.data import ChipDataLoader, revcomp
+from tfbs.constants import TRAIN_TFS, OOD_TFS, train_dir_and_shuffle, MODE_SUFFIX
+from tfbs.data import ChipDataLoader
 from tfbs.models import ConvNet, FeatureProbeExpert
 from tfbs.utils import get_tf_name, load_files_from_folder, set_seed
 
@@ -21,8 +21,9 @@ CACHE_DIR = "./results/cache"
 
 
 def _cdir(seed):
-    """Per-seed cache subdirectory so multi-seed robustness runs don't clobber."""
-    return os.path.join(CACHE_DIR, f"seed{seed}")
+    """Per-seed (and per-negative-mode) cache subdirectory so multi-seed robustness
+    runs -- and the dinuc vs genomic arms -- don't clobber each other."""
+    return os.path.join(CACHE_DIR, f"seed{seed}{MODE_SUFFIX}")
 
 
 # ---------------------------------------------------------------------------
@@ -34,12 +35,15 @@ def _by_tf(folder):
 
 
 def train_files():
-    f = _by_tf("./data/train")
+    """Training files for the current negative mode (dinuc -> data/train positives;
+    genomic -> data/train_genomicneg with real GC-matched negatives baked in)."""
+    train_dir, _ = train_dir_and_shuffle()
+    f = _by_tf(train_dir)
     return [f[tf] for tf in TRAIN_TFS]
 
 
 def eval_files():
-    """(data_type, tf, path) for the 3 in-distribution + 6 OOD curated sets."""
+    """(data_type, tf, path) for the 7 in-distribution + 29 OOD curated sets."""
     test = _by_tf("./data/test")
     ood = _by_tf("./data/ood")
     out = [("in_distribution", tf, test[tf]) for tf in TRAIN_TFS]
@@ -213,15 +217,18 @@ class DNABERT6Features:
         self._kmers = _kmers
 
     @torch.no_grad()
-    def features(self, seqs, max_len=110, bs=128):
+    def features(self, seqs, max_len=110, bs=256):
         out = []
+        _amp = device.type == "cuda"
         for i in range(0, len(seqs), bs):
             chunk = [self._kmers(s) for s in seqs[i : i + bs]]
             enc = self.tok(chunk, truncation=True, padding="max_length",
                            max_length=max_len, return_tensors="pt")
             enc = {k: v.to(device) for k, v in enc.items()}
-            hid = self.model.bert(input_ids=enc["input_ids"],
-                                  attention_mask=enc["attention_mask"]).last_hidden_state
+            with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=_amp):
+                hid = self.model.bert(input_ids=enc["input_ids"],
+                                      attention_mask=enc["attention_mask"]).last_hidden_state
+            hid = hid.float()
             m = enc["attention_mask"].unsqueeze(-1).float()
             pooled = (hid * m).sum(1) / m.sum(1).clamp(min=1)
             out.append(pooled.float().cpu().numpy())
@@ -267,8 +274,10 @@ def build_zoo(fm_name="dnabert2", embedding_dim=32, seed=42, backbones=None,
 
     # ---- assemble every dataset we need embeddings on ----
     datasets = {}  # key -> (X, y, seqs)
+    # genomic-negative mode: negatives are already in the file -> shuffle=False
+    _, _train_shuffle = train_dir_and_shuffle()
     for tf in TRAIN_TFS:
-        datasets[f"train::{tf}"] = build_dataset(tr_files[tf], is_train=True, seed=seed)
+        datasets[f"train::{tf}"] = build_dataset(tr_files[tf], is_train=_train_shuffle, seed=seed)
     for data_type, tf, path in eval_files():
         datasets[f"{data_type}::{tf}"] = build_dataset(path, is_train=False, seed=seed)
     meta = {f"train::{tf}": ("train", tf) for tf in TRAIN_TFS}

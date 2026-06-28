@@ -167,7 +167,7 @@ def _read_seqs(path, with_negs):
     return seqs, labels
 
 
-def train_dnabert(train_file, seed, epochs=3, batch_size=32, lr=2e-5, max_len=110):
+def train_dnabert(train_file, seed, epochs=3, batch_size=64, lr=2e-5, max_len=110):
     from transformers import AutoTokenizer, BertForSequenceClassification
 
     set_seed(seed)
@@ -182,6 +182,10 @@ def train_dnabert(train_file, seed, epochs=3, batch_size=32, lr=2e-5, max_len=11
         return tok([_kmers(s) for s in slist], truncation=True, padding="max_length",
                    max_length=max_len, return_tensors="pt")
 
+    # fp16 autocast + GradScaler -> ~2x faster fine-tuning on the RTX 3090's tensor
+    # cores; falls back to fp32 on CPU. Larger batch (64) for better GPU throughput.
+    use_amp = device.type == "cuda"
+    scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
     opt = torch.optim.AdamW(model.parameters(), lr=lr)
     tr_enc = encode(tr_s)
     tr_y_t = torch.tensor(tr_y)
@@ -196,21 +200,23 @@ def train_dnabert(train_file, seed, epochs=3, batch_size=32, lr=2e-5, max_len=11
             am = tr_enc["attention_mask"][idx].to(device)
             yb = tr_y_t[idx].to(device)
             opt.zero_grad()
-            out = model(input_ids=ids, attention_mask=am, labels=yb)
-            out.loss.backward()
-            opt.step()
+            with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=use_amp):
+                out = model(input_ids=ids, attention_mask=am, labels=yb)
+            scaler.scale(out.loss).backward()
+            scaler.step(opt)
+            scaler.update()
         # validation AUC
         model.eval()
         va_enc = encode(va_s)
         ps = []
-        with torch.no_grad():
-            for i in range(0, len(va_s), 128):
-                ids = va_enc["input_ids"][i:i + 128].to(device)
-                am = va_enc["attention_mask"][i:i + 128].to(device)
+        with torch.no_grad(), torch.autocast(device_type="cuda", dtype=torch.float16, enabled=use_amp):
+            for i in range(0, len(va_s), 256):
+                ids = va_enc["input_ids"][i:i + 256].to(device)
+                am = va_enc["attention_mask"][i:i + 256].to(device)
                 logit = model(input_ids=ids, attention_mask=am).logits
-                ps.append(torch.softmax(logit, 1)[:, 1].cpu().numpy())
+                ps.append(torch.softmax(logit.float(), 1)[:, 1].cpu().numpy())
         auc = roc_auc_score(va_y, np.concatenate(ps))
-        print(f"  [DNABERT {get_tf_name(train_file)}] epoch {ep} val AUC {auc:.4f}")
+        print(f"  [DNABERT {get_tf_name(train_file)}] epoch {ep} val AUC {auc:.4f}", flush=True)
         if auc > best_auc:
             best_auc, best_state = auc, {k: v.clone() for k, v in model.state_dict().items()}
     model.load_state_dict(best_state)

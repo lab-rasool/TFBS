@@ -8,10 +8,17 @@ import os
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from tfbs.constants import TRAIN_TFS, OOD_TFS, OOD_LEARNABLE, OOD_INDIRECT
+from tfbs.constants import (TRAIN_TFS, OOD_TFS, OOD_LEARNABLE, OOD_INDIRECT,
+                            OOD_WITHIN_FAMILY, OOD_CROSS_FAMILY, OOD_NONMOTIF)
 from tfbs.experts import build_zoo, _cdir, _load_dnabert_baseline
 from tfbs.gate import train_gate, gate_predict
-from tfbs.metrics import auc, brier, ece, paired_bootstrap
+from tfbs.metrics import (auc, brier, ece, paired_bootstrap, auprc,
+                          precision_at_recall, precision_at_prevalence)
+
+# Headline OOD = motif-bearing strata only (within- + cross-family). The non-motif
+# stratum (RNA PolII / chromatin cofactors) has a sequence-only ceiling and is
+# reported separately, never folded into the headline mean.
+OOD_MOTIF = OOD_WITHIN_FAMILY + OOD_CROSS_FAMILY
 
 
 def run_config(zoo, seed=42, l2norm=True, entropy_reg=1e-3, gate_temperature=1.0,
@@ -58,8 +65,9 @@ def run_config(zoo, seed=42, l2norm=True, entropy_reg=1e-3, gate_temperature=1.0
         gate_entropies.append(rows[k]["gate_entropy"])
 
     def mean_over(tfs, field):
-        vals = [rows[f"out_of_distribution::{tf}"][field] for tf in tfs]
-        return float(np.mean(vals))
+        vals = [rows[f"out_of_distribution::{tf}"][field] for tf in tfs
+                if f"out_of_distribution::{tf}" in rows]
+        return float(np.mean(vals)) if vals else float("nan")
 
     tag = tag or "hetmoe"
     summary = {
@@ -68,15 +76,18 @@ def run_config(zoo, seed=42, l2norm=True, entropy_reg=1e-3, gate_temperature=1.0
                    "gate_temperature": gate_temperature, "embedding_dim": embedding_dim},
         "expert_order": order, "gate_val_auc": gate_val_auc,
         "mean_gate_entropy": float(np.mean(gate_entropies)),
-        "ood_mean_hetmoe": mean_over(OOD_TFS, "hetmoe_auc"),
-        "ood_mean_oracle": mean_over(OOD_TFS, "oracle_auc"),
-        "ood_mean_static": mean_over(OOD_TFS, "static_mean_auc"),
-        "ood_learnable_hetmoe": mean_over(OOD_LEARNABLE, "hetmoe_auc"),
-        "ood_learnable_oracle": mean_over(OOD_LEARNABLE, "oracle_auc"),
-        "ood_indirect_hetmoe": mean_over(OOD_INDIRECT, "hetmoe_auc"),
+        # headline OOD = motif-bearing strata only (within + cross family)
+        "ood_mean_hetmoe": mean_over(OOD_MOTIF, "hetmoe_auc"),
+        "ood_mean_oracle": mean_over(OOD_MOTIF, "oracle_auc"),
+        "ood_mean_static": mean_over(OOD_MOTIF, "static_mean_auc"),
+        # per-stratum breakdown
+        "ood_within_family_hetmoe": mean_over(OOD_WITHIN_FAMILY, "hetmoe_auc"),
+        "ood_cross_family_hetmoe": mean_over(OOD_CROSS_FAMILY, "hetmoe_auc"),
+        "ood_nonmotif_hetmoe": mean_over(OOD_NONMOTIF, "hetmoe_auc"),
+        "ood_within_family_static": mean_over(OOD_WITHIN_FAMILY, "static_mean_auc"),
+        "ood_cross_family_static": mean_over(OOD_CROSS_FAMILY, "static_mean_auc"),
         "indist_mean_hetmoe": float(np.mean([rows[f"in_distribution::{tf}"]["hetmoe_auc"]
                                              for tf in TRAIN_TFS])),
-        "dnabert_ref_ood": 0.7492, "deepsea_ref_ood": 0.6918, "danq_ref_ood": 0.6881,
         "per_dataset": rows,
     }
     with open(os.path.join(out, f"decision_{tag}_seed{seed}.json"), "w") as f:
@@ -85,15 +96,13 @@ def run_config(zoo, seed=42, l2norm=True, entropy_reg=1e-3, gate_temperature=1.0
     print("\n================ DECISION GATE ================", flush=True)
     print(f"tag={tag} seed={seed} experts={num_experts} "
           f"l2norm={l2norm} entropy={entropy_reg} tau={gate_temperature}")
-    print(f"  OOD mean   HetMoE={summary['ood_mean_hetmoe']:.4f}  "
+    print(f"  OOD motif mean   HetMoE={summary['ood_mean_hetmoe']:.4f}  "
           f"ORACLE={summary['ood_mean_oracle']:.4f}  static={summary['ood_mean_static']:.4f}")
-    print(f"  OOD learnable (CTCF,STAT3)  HetMoE={summary['ood_learnable_hetmoe']:.4f}  "
-          f"ORACLE={summary['ood_learnable_oracle']:.4f}")
+    print(f"    within-family HetMoE={summary['ood_within_family_hetmoe']:.4f}  "
+          f"cross-family HetMoE={summary['ood_cross_family_hetmoe']:.4f}  "
+          f"non-motif HetMoE={summary['ood_nonmotif_hetmoe']:.4f}")
     print(f"  in-dist HetMoE={summary['indist_mean_hetmoe']:.4f}  "
           f"gate_entropy={summary['mean_gate_entropy']:.3f}")
-    print(f"  reference: DNABERT-6 OOD=0.7492  DeepSEA=0.6918  DanQ=0.6881")
-    verdict = ("PROCEED" if summary["ood_mean_oracle"] > 0.749 else "STOP/PARITY")
-    print(f"  >>> oracle {'>' if summary['ood_mean_oracle']>0.749 else '<='} 0.749  -> {verdict}")
     print("===============================================\n", flush=True)
     return summary
 
@@ -157,9 +166,13 @@ def full_evaluation(zoo, seed=42, l2norm=True, entropy_reg=1e-3, gate_temperatur
         for m in preds:
             lo, hi = np.percentile(boot[m], [2.5, 97.5])
             rec[f"{m}_auc"] = auc(y, preds[m]); rec[f"{m}_ci"] = [float(lo), float(hi)]
+            rec[f"{m}_auprc"] = auprc(y, preds[m])
             summary_rows.append({"model": m, "data_type": dtype, "tf": tf,
                                  "point_auc": auc(y, preds[m]), "mean_auc": float(boot[m].mean()),
-                                 "ci95_low": float(lo), "ci95_high": float(hi)})
+                                 "ci95_low": float(lo), "ci95_high": float(hi),
+                                 "auprc": auprc(y, preds[m]),
+                                 "prec_at_rec50": precision_at_recall(y, preds[m], 0.5),
+                                 "prec_at_prev1e-3": precision_at_prevalence(y, preds[m], 0.5, 1e-3)})
         rec["HetMoE_brier"] = brier(y, moe_p); rec["HetMoE_ece"] = ece(y, moe_p)
         rec["gate_entropy"] = float(-(gw * np.log(gw + 1e-9)).sum(1).mean())
         rec["gate_weights"] = gw.mean(0).tolist()  # per-expert mean gate weight (heatmap)
@@ -173,22 +186,26 @@ def full_evaluation(zoo, seed=42, l2norm=True, entropy_reg=1e-3, gate_temperatur
                                 "non_inferior_TOST": bool(lo > -tost_margin)})
         per_ds[k] = rec
 
-    def ood_mean(field, tfs=OOD_TFS):
-        return float(np.mean([per_ds[f"out_of_distribution::{tf}"][field] for tf in tfs]))
+    def ood_mean(field, tfs=OOD_MOTIF):
+        vals = [per_ds[f"out_of_distribution::{tf}"][field] for tf in tfs
+                if f"out_of_distribution::{tf}" in per_ds]
+        return float(np.mean(vals)) if vals else float("nan")
 
+    models = ["HetMoE", "static_mean", "best_single"] + (["DNABERT"] if dnabert else [])
     result = {
         "config": {"l2norm": l2norm, "entropy_reg": entropy_reg,
                    "gate_temperature": gate_temperature, "seed": seed,
                    "num_experts": num_experts, "expert_order": order},
-        "ood_mean": {m: ood_mean(f"{m}_auc") for m in
-                     (["HetMoE", "static_mean", "best_single"] + (["DNABERT"] if dnabert else []))},
-        "ood_learnable_hetmoe": ood_mean("HetMoE_auc", OOD_LEARNABLE),
-        "ood_indirect_hetmoe": ood_mean("HetMoE_auc", OOD_INDIRECT),
+        # headline OOD = motif-bearing strata (within + cross family) only
+        "ood_mean": {m: ood_mean(f"{m}_auc") for m in models},
+        "ood_mean_auprc": {m: ood_mean(f"{m}_auprc") for m in models},
+        "ood_within_family": {m: ood_mean(f"{m}_auc", OOD_WITHIN_FAMILY) for m in models},
+        "ood_cross_family": {m: ood_mean(f"{m}_auc", OOD_CROSS_FAMILY) for m in models},
+        "ood_nonmotif": {m: ood_mean(f"{m}_auc", OOD_NONMOTIF) for m in models},
         "indist_mean_hetmoe": float(np.mean([per_ds[f"in_distribution::{tf}"]["HetMoE_auc"]
                                              for tf in TRAIN_TFS])),
         "ood_mean_ece": ood_mean("HetMoE_ece"), "ood_mean_brier": ood_mean("HetMoE_brier"),
         "tost_margin": tost_margin, "per_dataset": per_ds, "paired_vs_dnabert": paired_rows,
-        "references": {"DNABERT6": 0.7492, "DeepSEA": 0.6918, "DanQ": 0.6881, "orig_MoE": 0.6829},
     }
     import pandas as pd
     pd.DataFrame(summary_rows).to_csv(os.path.join(out, "hetmoe_summary.csv"), index=False)
@@ -198,16 +215,22 @@ def full_evaluation(zoo, seed=42, l2norm=True, entropy_reg=1e-3, gate_temperatur
         json.dump(result, f, indent=2)
 
     print("\n============== FULL EVALUATION (Phase C) ==============", flush=True)
+    print("  OOD motif-mean AUC (within+cross family):")
     for m, v in result["ood_mean"].items():
-        print(f"  OOD mean {m:12s} = {v:.4f}")
-    print(f"  OOD learnable(CTCF,STAT3) HetMoE = {result['ood_learnable_hetmoe']:.4f}")
+        print(f"    {m:12s} = {v:.4f}  (auPRC {result['ood_mean_auprc'][m]:.4f})")
+    print(f"  strata HetMoE: within-family={result['ood_within_family']['HetMoE']:.4f}  "
+          f"cross-family={result['ood_cross_family']['HetMoE']:.4f}  "
+          f"non-motif={result['ood_nonmotif']['HetMoE']:.4f}")
     print(f"  in-dist HetMoE = {result['indist_mean_hetmoe']:.4f} | "
           f"OOD ECE={result['ood_mean_ece']:.3f} Brier={result['ood_mean_brier']:.3f}")
     if paired_rows:
-        ood_pr = [r for r in paired_rows if r["data_type"] == "out_of_distribution"]
+        # motif-bearing OOD TFs only (non-motif excluded from the headline tally)
+        ood_pr = [r for r in paired_rows if r["data_type"] == "out_of_distribution"
+                  and r["tf"] in OOD_MOTIF]
+        ntot = len(ood_pr)
         nsup = sum(r["superior"] for r in ood_pr); nni = sum(r["non_inferior_TOST"] for r in ood_pr)
-        print(f"  vs DNABERT (per-OOD-TF): superior CI-excludes-0 on {nsup}/6, "
-              f"non-inferior(TOST +/-{tost_margin}) on {nni}/6")
+        print(f"  vs DNABERT (per motif-OOD-TF): superior CI-excludes-0 on {nsup}/{ntot}, "
+              f"non-inferior(TOST +/-{tost_margin}) on {nni}/{ntot}")
         for r in ood_pr:
             flag = "SUP" if r["superior"] else ("NI" if r["non_inferior_TOST"] else "—")
             print(f"     {r['tf']:8s} diff={r['mean_diff']:+.4f} CI[{r['ci95_low']:+.4f},{r['ci95_high']:+.4f}] {flag}")
